@@ -1,1 +1,13 @@
 project_id = "axigapxeasykxoaaedhe"
+
+[functions.validate-flag]
+verify_jwt = false
+
+[functions.create-user]
+verify_jwt = false
+
+[functions.delete-user]
+verify_jwt = false
+
+[functions.seed-data]
+verify_jwt = false
