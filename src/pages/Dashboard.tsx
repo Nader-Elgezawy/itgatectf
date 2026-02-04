@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy, Flag, Users, Clock, Medal, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
+import { Certificate } from '@/components/Certificate';
 
 interface LeaderboardEntry {
   user_id: string;
@@ -17,12 +18,13 @@ interface UserStats {
   totalPoints: number;
   solvedCount: number;
   rank: number;
+  username: string;
 }
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [userStats, setUserStats] = useState<UserStats>({ totalPoints: 0, solvedCount: 0, rank: 0 });
+  const [userStats, setUserStats] = useState<UserStats>({ totalPoints: 0, solvedCount: 0, rank: 0, username: '' });
   const [totalChallenges, setTotalChallenges] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -59,7 +61,22 @@ export default function Dashboard() {
             totalPoints: Number(entry.total_points) || 0,
             solvedCount: Number(entry.solved_count) || 0,
             rank: userIndex + 1,
+            username: entry.username,
           });
+        } else {
+          // User hasn't solved any challenges yet, fetch their username from profiles
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', user.id)
+            .single();
+          
+          if (profileData) {
+            setUserStats(prev => ({
+              ...prev,
+              username: profileData.username,
+            }));
+          }
         }
       }
     }
@@ -168,6 +185,15 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Certificate Preview */}
+        <Certificate
+          participantName={userStats.username}
+          rank={userStats.rank}
+          totalPoints={userStats.totalPoints}
+          solvedCount={userStats.solvedCount}
+          totalParticipants={leaderboard.length}
+        />
 
         {/* Leaderboard */}
         <Card className="cyber-card">
