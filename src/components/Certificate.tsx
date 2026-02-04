@@ -27,6 +27,7 @@ export function Certificate({
   };
 
   const getRankTitle = (rank: number) => {
+    if (rank === 0) return 'Participant';
     if (rank === 1) return 'Champion';
     if (rank === 2) return '1st Runner-up';
     if (rank === 3) return '2nd Runner-up';
@@ -56,7 +57,9 @@ export function Certificate({
     }
   };
 
-  if (rank === 0 || !participantName) {
+  // Show certificate only after the user has solved at least one challenge.
+  // Rank can be 0 for accounts not included in the leaderboard (e.g. admin).
+  if (!participantName || solvedCount === 0) {
     return null;
   }
 
@@ -90,7 +93,7 @@ export function Certificate({
                 {[...Array(5)].map((_, i) => (
                   <Star 
                     key={i} 
-                    className={`h-5 w-5 ${i < Math.min(5, 6 - Math.ceil(rank / 2)) ? 'text-primary fill-primary' : 'text-muted-foreground/30'}`} 
+                    className={`h-5 w-5 ${rank > 0 && i < Math.min(5, 6 - Math.ceil(rank / 2)) ? 'text-primary fill-primary' : 'text-muted-foreground/30'}`} 
                   />
                 ))}
               </div>
@@ -133,7 +136,7 @@ export function Certificate({
               </p>
               <div className="flex flex-col items-center gap-2">
                 <span className="text-4xl md:text-6xl font-bold font-mono text-primary">
-                  {getOrdinalSuffix(rank)}
+                  {rank > 0 ? getOrdinalSuffix(rank) : 'Unranked'}
                 </span>
                 <span className="text-lg md:text-xl font-semibold font-mono text-accent">
                   {getRankTitle(rank)}
@@ -154,8 +157,8 @@ export function Certificate({
               </div>
               <div className="w-px bg-border" />
               <div className="text-center">
-                <p className="text-2xl md:text-3xl font-bold font-mono text-warning">#{rank}</p>
-                <p className="text-xs text-muted-foreground font-mono uppercase">of {totalParticipants}</p>
+                <p className="text-2xl md:text-3xl font-bold font-mono text-warning">{rank > 0 ? `#${rank}` : '—'}</p>
+                <p className="text-xs text-muted-foreground font-mono uppercase">{rank > 0 ? `of ${totalParticipants}` : 'Position'}</p>
               </div>
             </div>
 

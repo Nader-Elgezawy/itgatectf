@@ -64,19 +64,35 @@ export default function Dashboard() {
             username: entry.username,
           });
         } else {
-          // User hasn't solved any challenges yet, fetch their username from profiles
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('username')
-            .eq('id', user.id)
-            .single();
-          
-          if (profileData) {
-            setUserStats(prev => ({
-              ...prev,
-              username: profileData.username,
-            }));
-          }
+          // User isn't on the leaderboard list (e.g. admin is excluded). Still fetch their stats so
+          // certificate/download can work after they solve at least one challenge.
+          const [{ data: profileData }, { data: solvedData }] = await Promise.all([
+            supabase
+              .from('profiles')
+              .select('username')
+              .eq('id', user.id)
+              .single(),
+            supabase
+              .from('submissions')
+              .select('challenge_id, challenges(points)')
+              .eq('user_id', user.id)
+              .eq('is_correct', true),
+          ]);
+
+          const uniqueSolved = new Set((solvedData ?? []).map((s: any) => s.challenge_id));
+          const solvedCount = uniqueSolved.size;
+          const totalPoints = (solvedData ?? []).reduce((sum: number, s: any) => {
+            const pts = s?.challenges?.points;
+            return sum + (typeof pts === 'number' ? pts : 0);
+          }, 0);
+
+          setUserStats(prev => ({
+            ...prev,
+            username: profileData?.username ?? prev.username,
+            solvedCount,
+            totalPoints,
+            // rank stays 0 when not part of leaderboard
+          }));
         }
       }
     }
