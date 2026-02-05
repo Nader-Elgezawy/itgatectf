@@ -24,6 +24,7 @@ export type Database = {
           flag: string
           id: string
           is_active: boolean | null
+          penalty_points: number
           points: number
           title: string
           updated_at: string
@@ -37,6 +38,7 @@ export type Database = {
           flag: string
           id?: string
           is_active?: boolean | null
+          penalty_points?: number
           points?: number
           title: string
           updated_at?: string
@@ -50,6 +52,7 @@ export type Database = {
           flag?: string
           id?: string
           is_active?: boolean | null
+          penalty_points?: number
           points?: number
           title?: string
           updated_at?: string
@@ -169,6 +172,7 @@ export type Database = {
           file_url: string | null
           id: string | null
           is_active: boolean | null
+          penalty_points: number | null
           points: number | null
           title: string | null
           updated_at: string | null
@@ -181,6 +185,7 @@ export type Database = {
           file_url?: string | null
           id?: string | null
           is_active?: boolean | null
+          penalty_points?: number | null
           points?: number | null
           title?: string | null
           updated_at?: string | null
@@ -193,6 +198,7 @@ export type Database = {
           file_url?: string | null
           id?: string | null
           is_active?: boolean | null
+          penalty_points?: number | null
           points?: number | null
           title?: string | null
           updated_at?: string | null

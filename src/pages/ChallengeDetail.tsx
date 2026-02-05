@@ -25,6 +25,7 @@ interface Challenge {
   description: string;
   category: string;
   points: number;
+  penalty_points: number;
   file_url: string | null;
   file_name: string | null;
 }
@@ -50,11 +51,15 @@ export default function ChallengeDetail() {
   const fetchChallenge = async () => {
     setIsLoading(true);
     const { data } = await supabase
-      .from('challenges')
-      .select('id, title, description, category, points, file_url, file_name')
-      .eq('id', id)
-      .eq('is_active', true)
+      .from('challenges_public')
+      .select('id, title, description, category, points, penalty_points, file_url, file_name')
+      .eq('id', id!)
       .single();
+
+    if (data) {
+      setChallenge(data as unknown as Challenge);
+    }
+    setIsLoading(false);
 
     if (data) {
       setChallenge(data);
@@ -205,6 +210,11 @@ export default function ChallengeDetail() {
                   <span className={`font-mono font-bold text-lg ${isSolved ? 'text-success' : 'text-primary'}`}>
                     {challenge.points} pts
                   </span>
+                  {challenge.penalty_points > 0 && (
+                    <span className="font-mono text-sm text-destructive">
+                      (-{challenge.penalty_points} per wrong attempt)
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

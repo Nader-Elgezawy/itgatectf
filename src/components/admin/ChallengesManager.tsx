@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -27,13 +27,12 @@ interface Challenge {
   category: string;
   points: number;
   flag: string;
+  penalty_points: number;
   file_url: string | null;
   file_name: string | null;
   is_active: boolean;
   created_at: string;
 }
-
-const CATEGORIES = ['Web', 'Crypto', 'Forensics', 'Pwn', 'Reverse', 'Misc'];
 
 export function ChallengesManager() {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -48,6 +47,7 @@ export function ChallengesManager() {
   const [category, setCategory] = useState('Web');
   const [points, setPoints] = useState('100');
   const [flag, setFlag] = useState('');
+  const [penaltyPoints, setPenaltyPoints] = useState('0');
   const [isActive, setIsActive] = useState(true);
   const [file, setFile] = useState<File | null>(null);
 
@@ -74,6 +74,7 @@ export function ChallengesManager() {
     setCategory('Web');
     setPoints('100');
     setFlag('');
+    setPenaltyPoints('0');
     setIsActive(true);
     setFile(null);
     setEditingChallenge(null);
@@ -86,6 +87,7 @@ export function ChallengesManager() {
     setCategory(challenge.category);
     setPoints(challenge.points.toString());
     setFlag(challenge.flag);
+    setPenaltyPoints(challenge.penalty_points.toString());
     setIsActive(challenge.is_active);
     setIsDialogOpen(true);
   };
@@ -124,6 +126,7 @@ export function ChallengesManager() {
         description,
         category,
         points: parseInt(points),
+        penalty_points: parseInt(penaltyPoints) || 0,
         flag,
         is_active: isActive,
         file_url: fileUrl,
@@ -207,16 +210,13 @@ export function ChallengesManager() {
                 </div>
                 <div className="space-y-2">
                   <Label className="font-mono">Category</Label>
-                  <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger className="cyber-input">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map(cat => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    placeholder="e.g. Web, Crypto, Forensics..."
+                    required
+                    className="cyber-input"
+                  />
                 </div>
               </div>
 
@@ -232,7 +232,7 @@ export function ChallengesManager() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label className="font-mono">Points</Label>
                   <Input
@@ -243,6 +243,17 @@ export function ChallengesManager() {
                     required
                     className="cyber-input"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-mono">Penalty (wrong answer)</Label>
+                  <Input
+                    type="number"
+                    value={penaltyPoints}
+                    onChange={(e) => setPenaltyPoints(e.target.value)}
+                    min="0"
+                    className="cyber-input"
+                  />
+                  <p className="text-xs text-muted-foreground">Points deducted per wrong attempt</p>
                 </div>
                 <div className="space-y-2">
                   <Label className="font-mono">Flag</Label>
@@ -332,6 +343,11 @@ export function ChallengesManager() {
                       <span className="text-sm font-mono text-primary">
                         {challenge.points} pts
                       </span>
+                      {challenge.penalty_points > 0 && (
+                        <span className="text-sm font-mono text-destructive">
+                          -{challenge.penalty_points} penalty
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground line-clamp-1">
                       {challenge.description}
