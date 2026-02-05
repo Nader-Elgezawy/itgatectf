@@ -5,6 +5,8 @@ import { Trophy, Flag, Users, Clock, Medal, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { Certificate } from '@/components/Certificate';
+import { CompetitionTimer } from '@/components/CompetitionTimer';
+import { useCompetitionTimer } from '@/hooks/useCompetitionTimer';
 
 interface LeaderboardEntry {
   user_id: string;
@@ -27,6 +29,7 @@ export default function Dashboard() {
   const [userStats, setUserStats] = useState<UserStats>({ totalPoints: 0, solvedCount: 0, rank: 0, username: '' });
   const [totalChallenges, setTotalChallenges] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const { isExpired: timerExpired } = useCompetitionTimer();
 
   useEffect(() => {
     fetchData();
@@ -202,14 +205,19 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Certificate Preview */}
-        <Certificate
-          participantName={userStats.username}
-          rank={userStats.rank}
-          totalPoints={userStats.totalPoints}
-          solvedCount={userStats.solvedCount}
-          totalParticipants={leaderboard.length}
-        />
+        {/* Competition Timer */}
+        <CompetitionTimer />
+
+        {/* Certificate Preview - only visible after timer expires */}
+        {timerExpired && (
+          <Certificate
+            participantName={userStats.username}
+            rank={userStats.rank}
+            totalPoints={userStats.totalPoints}
+            solvedCount={userStats.solvedCount}
+            totalParticipants={leaderboard.length}
+          />
+        )}
 
         {/* Leaderboard */}
         <Card className="cyber-card">
