@@ -14,6 +14,7 @@ interface Challenge {
   description: string;
   category: string;
   points: number;
+  penalty_points: number;
   file_url: string | null;
   file_name: string | null;
 }
@@ -33,14 +34,13 @@ export default function Challenges() {
 
     // Fetch challenges
     const { data: challengesData } = await supabase
-      .from('challenges')
-      .select('id, title, description, category, points, file_url, file_name')
-      .eq('is_active', true)
+      .from('challenges_public')
+      .select('id, title, description, category, points, penalty_points, file_url, file_name')
       .order('category')
       .order('points');
 
     if (challengesData) {
-      setChallenges(challengesData);
+      setChallenges(challengesData as unknown as Challenge[]);
     }
 
     // Fetch user's solved challenges
