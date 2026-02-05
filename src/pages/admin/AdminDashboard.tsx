@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, Users, Flag, FileText } from 'lucide-react';
+import { Shield, Users, Flag, FileText, Clock } from 'lucide-react';
 import { ChallengesManager } from '@/components/admin/ChallengesManager';
 import { UsersManager } from '@/components/admin/UsersManager';
 import { SubmissionsViewer } from '@/components/admin/SubmissionsViewer';
+import { TimerControl } from '@/components/admin/TimerControl';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('challenges');
@@ -38,6 +39,10 @@ export default function AdminDashboard() {
               <FileText className="h-4 w-4 mr-2" />
               Submissions
             </TabsTrigger>
+            <TabsTrigger value="timer" className="font-mono">
+              <Clock className="h-4 w-4 mr-2" />
+              Timer
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="challenges" className="mt-6">
@@ -50,6 +55,10 @@ export default function AdminDashboard() {
 
           <TabsContent value="submissions" className="mt-6">
             <SubmissionsViewer />
+          </TabsContent>
+
+          <TabsContent value="timer" className="mt-6">
+            <TimerControl />
           </TabsContent>
         </Tabs>
       </div>
