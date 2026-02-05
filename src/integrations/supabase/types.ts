@@ -131,6 +131,13 @@ export type Database = {
             referencedRelation: "challenges"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "submissions_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_roles: {
@@ -153,7 +160,45 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      challenges_public: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          file_name: string | null
+          file_url: string | null
+          id: string | null
+          is_active: boolean | null
+          points: number | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          points?: number | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          points?: number | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_leaderboard: {
