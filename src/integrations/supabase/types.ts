@@ -220,6 +220,9 @@ export type Database = {
         Args: never
         Returns: {
           last_solve: string
+          player1_name: string
+          player2_name: string
+          player3_name: string
           solved_count: number
           total_points: number
           user_id: string

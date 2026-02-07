@@ -5,6 +5,7 @@ import { Award, Download, Star } from 'lucide-react';
 
 interface CertificateProps {
   participantName: string;
+  playerNames: string[];
   rank: number;
   totalPoints: number;
   solvedCount: number;
@@ -13,6 +14,7 @@ interface CertificateProps {
 
 export function Certificate({ 
   participantName, 
+  playerNames,
   rank, 
   totalPoints, 
   solvedCount,
@@ -39,7 +41,6 @@ export function Certificate({
     if (!certificateRef.current) return;
 
     try {
-      // Dynamic import for html2canvas
       const html2canvas = (await import('html2canvas')).default;
       
       const canvas = await html2canvas(certificateRef.current, {
@@ -57,11 +58,11 @@ export function Certificate({
     }
   };
 
-  // Show certificate only after the user has solved at least one challenge.
-  // Rank can be 0 for accounts not included in the leaderboard (e.g. admin).
   if (!participantName || solvedCount === 0) {
     return null;
   }
+
+  const validPlayerNames = playerNames.filter(Boolean);
 
   return (
     <Card className="cyber-card overflow-hidden">
@@ -124,9 +125,25 @@ export function Certificate({
               <p className="text-xs md:text-sm text-muted-foreground font-mono uppercase tracking-wider">
                 This is to certify that
               </p>
+              {/* Team Name */}
               <h3 className="text-2xl md:text-4xl font-bold font-mono text-foreground px-4 py-2 border-b-2 border-primary/50 inline-block">
                 {participantName}
               </h3>
+              {/* Player Names */}
+              {validPlayerNames.length > 0 && (
+                <div className="space-y-1 pt-2">
+                  <p className="text-xs text-muted-foreground font-mono uppercase tracking-wider">
+                    Team Members
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-x-6 gap-y-1">
+                    {validPlayerNames.map((name, i) => (
+                      <span key={i} className="text-base md:text-lg font-semibold font-mono text-accent">
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Achievement */}

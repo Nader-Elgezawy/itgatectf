@@ -18,21 +18,27 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
-interface UserProfile {
+interface TeamProfile {
   id: string;
   username: string;
+  player1_name: string | null;
+  player2_name: string | null;
+  player3_name: string | null;
   created_at: string;
   role: 'admin' | 'user';
 }
 
-const createUserSchema = z.object({
+const createTeamSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  username: z.string().min(2, 'Username must be at least 2 characters').max(50),
+  username: z.string().min(2, 'Team name must be at least 2 characters').max(50),
+  player1_name: z.string().min(2, 'Player 1 name is required').max(100),
+  player2_name: z.string().min(2, 'Player 2 name is required').max(100),
+  player3_name: z.string().min(2, 'Player 3 name is required').max(100),
 });
 
-export function UsersManager() {
-  const [users, setUsers] = useState<UserProfile[]>([]);
+export function TeamsManager() {
+  const [teams, setTeams] = useState<TeamProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,24 +47,25 @@ export function UsersManager() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [player1Name, setPlayer1Name] = useState('');
+  const [player2Name, setPlayer2Name] = useState('');
+  const [player3Name, setPlayer3Name] = useState('');
   const [role, setRole] = useState<'admin' | 'user'>('user');
 
   useEffect(() => {
-    fetchUsers();
+    fetchTeams();
   }, []);
 
-  const fetchUsers = async () => {
+  const fetchTeams = async () => {
     setIsLoading(true);
     
-    // Fetch profiles with roles
     const { data: profiles } = await supabase
       .from('profiles')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (profiles) {
-      // Fetch roles for each user
-      const usersWithRoles = await Promise.all(
+      const teamsWithRoles = await Promise.all(
         profiles.map(async (profile) => {
           const { data: roles } = await supabase
             .from('user_roles')
@@ -69,10 +76,10 @@ export function UsersManager() {
           return {
             ...profile,
             role: isAdmin ? 'admin' : 'user',
-          } as UserProfile;
+          } as TeamProfile;
         })
       );
-      setUsers(usersWithRoles);
+      setTeams(teamsWithRoles);
     }
     
     setIsLoading(false);
@@ -82,14 +89,21 @@ export function UsersManager() {
     setEmail('');
     setPassword('');
     setUsername('');
+    setPlayer1Name('');
+    setPlayer2Name('');
+    setPlayer3Name('');
     setRole('user');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate
-    const validation = createUserSchema.safeParse({ email, password, username });
+    const validation = createTeamSchema.safeParse({ 
+      email, password, username, 
+      player1_name: player1Name, 
+      player2_name: player2Name, 
+      player3_name: player3Name 
+    });
     if (!validation.success) {
       toast.error(validation.error.errors[0].message);
       return;
@@ -98,46 +112,50 @@ export function UsersManager() {
     setIsSubmitting(true);
 
     try {
-      // Call edge function to create user
       const { data, error } = await supabase.functions.invoke('create-user', {
-        body: { email, password, username, role },
+        body: { 
+          email, password, username, role,
+          player1_name: player1Name,
+          player2_name: player2Name,
+          player3_name: player3Name,
+        },
       });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      toast.success('User created successfully');
+      toast.success('Team created successfully');
       setIsDialogOpen(false);
       resetForm();
-      fetchUsers();
+      fetchTeams();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create user');
+      toast.error(error.message || 'Failed to create team');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (userId: string, username: string) => {
-    if (!confirm(`Are you sure you want to delete user "${username}"? This cannot be undone.`)) return;
+  const handleDelete = async (teamId: string, teamName: string) => {
+    if (!confirm(`Are you sure you want to delete team "${teamName}"? This cannot be undone.`)) return;
 
     try {
       const { error } = await supabase.functions.invoke('delete-user', {
-        body: { userId },
+        body: { userId: teamId },
       });
 
       if (error) throw error;
 
-      toast.success('User deleted');
-      fetchUsers();
+      toast.success('Team deleted');
+      fetchTeams();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to delete user');
+      toast.error(error.message || 'Failed to delete team');
     }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold font-mono">Users</h2>
+        <h2 className="text-xl font-bold font-mono">Teams</h2>
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           setIsDialogOpen(open);
           if (!open) resetForm();
@@ -145,39 +163,73 @@ export function UsersManager() {
           <DialogTrigger asChild>
             <Button className="font-mono cyber-glow">
               <Plus className="h-4 w-4 mr-2" />
-              Add User
+              Add Team
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="font-mono">Create User</DialogTitle>
+              <DialogTitle className="font-mono">Create Team</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label className="font-mono">Username</Label>
+                <Label className="font-mono">Team Name</Label>
                 <Input
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="player1"
+                  placeholder="Team Alpha"
                   required
                   className="cyber-input"
                 />
               </div>
 
+              <div className="space-y-3 p-4 rounded-lg bg-muted/30 border border-border">
+                <Label className="font-mono text-sm text-muted-foreground uppercase tracking-wider">Team Members (3 Players)</Label>
+                <div className="space-y-2">
+                  <Label className="font-mono text-xs">Player 1</Label>
+                  <Input
+                    value={player1Name}
+                    onChange={(e) => setPlayer1Name(e.target.value)}
+                    placeholder="Player 1 full name"
+                    required
+                    className="cyber-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-mono text-xs">Player 2</Label>
+                  <Input
+                    value={player2Name}
+                    onChange={(e) => setPlayer2Name(e.target.value)}
+                    placeholder="Player 2 full name"
+                    required
+                    className="cyber-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-mono text-xs">Player 3</Label>
+                  <Input
+                    value={player3Name}
+                    onChange={(e) => setPlayer3Name(e.target.value)}
+                    placeholder="Player 3 full name"
+                    required
+                    className="cyber-input"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label className="font-mono">Email</Label>
+                <Label className="font-mono">Login Email</Label>
                 <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="user@example.com"
+                  placeholder="team@example.com"
                   required
                   className="cyber-input"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="font-mono">Password</Label>
+                <Label className="font-mono">Login Password</Label>
                 <Input
                   type="password"
                   value={password}
@@ -187,7 +239,7 @@ export function UsersManager() {
                   className="cyber-input"
                 />
                 <p className="text-xs text-muted-foreground">
-                  At least 8 characters
+                  Shared password for the team (at least 8 characters)
                 </p>
               </div>
 
@@ -198,7 +250,7 @@ export function UsersManager() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="user">Team</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
@@ -216,7 +268,7 @@ export function UsersManager() {
                   {isSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    'Create'
+                    'Create Team'
                   )}
                 </Button>
               </div>
@@ -227,42 +279,54 @@ export function UsersManager() {
 
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground font-mono">
-          Loading users...
+          Loading teams...
         </div>
-      ) : users.length === 0 ? (
+      ) : teams.length === 0 ? (
         <Card className="cyber-card">
           <CardContent className="py-8 text-center">
             <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground font-mono">No users yet.</p>
+            <p className="text-muted-foreground font-mono">No teams yet.</p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
-          {users.map((user) => (
-            <Card key={user.id} className="cyber-card">
+          {teams.map((team) => (
+            <Card key={team.id} className="cyber-card">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className={`p-2 rounded-lg ${
-                      user.role === 'admin' 
+                      team.role === 'admin' 
                         ? 'bg-primary/10 text-primary' 
                         : 'bg-muted text-muted-foreground'
                     }`}>
-                      {user.role === 'admin' ? (
+                      {team.role === 'admin' ? (
                         <Shield className="h-5 w-5" />
                       ) : (
-                        <User className="h-5 w-5" />
+                        <Users className="h-5 w-5" />
                       )}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-mono font-semibold">{user.username}</h3>
-                        <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                          {user.role}
+                        <h3 className="font-mono font-semibold">{team.username}</h3>
+                        <Badge variant={team.role === 'admin' ? 'default' : 'secondary'}>
+                          {team.role === 'admin' ? 'admin' : 'team'}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground font-mono">
-                        Joined {new Date(user.created_at).toLocaleDateString()}
+                      {team.role !== 'admin' && (team.player1_name || team.player2_name || team.player3_name) && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {[team.player1_name, team.player2_name, team.player3_name]
+                            .filter(Boolean)
+                            .map((name, i) => (
+                              <Badge key={i} variant="outline" className="text-xs font-mono">
+                                <User className="h-3 w-3 mr-1" />
+                                {name}
+                              </Badge>
+                            ))}
+                        </div>
+                      )}
+                      <p className="text-sm text-muted-foreground font-mono mt-1">
+                        Joined {new Date(team.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -270,7 +334,7 @@ export function UsersManager() {
                     variant="ghost"
                     size="icon"
                     className="text-destructive hover:text-destructive"
-                    onClick={() => handleDelete(user.id, user.username)}
+                    onClick={() => handleDelete(team.id, team.username)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
