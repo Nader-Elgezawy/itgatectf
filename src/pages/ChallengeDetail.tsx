@@ -13,11 +13,13 @@ import {
   ArrowLeft, 
   Send,
   Loader2,
-  FileText
+  FileText,
+  Clock
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
+import { useCompetitionTimer } from '@/hooks/useCompetitionTimer';
 
 interface Challenge {
   id: string;
@@ -33,12 +35,16 @@ interface Challenge {
 export default function ChallengeDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { isExpired: timerExpired, settings: timerSettings } = useCompetitionTimer();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [isSolved, setIsSolved] = useState(false);
   const [flag, setFlag] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [recentAttempts, setRecentAttempts] = useState(0);
+
+  // Competition is timed and has expired
+  const isCompetitionOver = timerSettings?.is_active && timerExpired;
 
   useEffect(() => {
     if (id) {
@@ -109,7 +115,6 @@ export default function ChallengeDetail() {
     setIsSubmitting(true);
 
     try {
-      // Submit the flag to an edge function for validation
       const { data, error } = await supabase.functions.invoke('validate-flag', {
         body: {
           challengeId: challenge.id,
@@ -119,6 +124,11 @@ export default function ChallengeDetail() {
 
       if (error) {
         toast.error('Failed to submit flag. Please try again.');
+        return;
+      }
+
+      if (data.error) {
+        toast.error(data.error);
         return;
       }
 
@@ -243,7 +253,15 @@ export default function ChallengeDetail() {
             )}
 
             {/* Flag submission */}
-            {isSolved ? (
+            {isCompetitionOver ? (
+              <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30 text-center">
+                <Clock className="h-8 w-8 mx-auto mb-2 text-destructive" />
+                <p className="font-mono text-destructive font-semibold">Competition Time Has Ended</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  No more submissions are accepted.
+                </p>
+              </div>
+            ) : isSolved ? (
               <div className="p-4 rounded-lg bg-success/10 border border-success/30 text-center">
                 <CheckCircle className="h-8 w-8 mx-auto mb-2 text-success" />
                 <p className="font-mono text-success font-semibold">Challenge Solved!</p>

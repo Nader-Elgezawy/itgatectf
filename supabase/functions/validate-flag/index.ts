@@ -60,6 +60,25 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
+    // Check if competition timer has expired
+    const { data: settings } = await supabaseAdmin
+      .from("competition_settings")
+      .select("end_time, is_active")
+      .limit(1)
+      .maybeSingle();
+
+    if (settings?.is_active && settings?.end_time) {
+      const endTime = new Date(settings.end_time).getTime();
+      const now = Date.now();
+      if (now > endTime) {
+        console.log("Competition has ended, rejecting submission");
+        return new Response(
+          JSON.stringify({ error: "Competition has ended. No more submissions are accepted." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Check if already solved
     const { data: existingSolve } = await supabaseAdmin
       .from("submissions")

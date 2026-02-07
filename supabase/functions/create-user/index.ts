@@ -43,7 +43,7 @@ serve(async (req) => {
       );
     }
 
-    const { email, password, username, role } = await req.json();
+    const { email, password, username, role, player1_name, player2_name, player3_name } = await req.json();
 
     if (!email || !password || !username) {
       return new Response(
@@ -72,12 +72,15 @@ serve(async (req) => {
       );
     }
 
-    // Create profile
+    // Create profile with player names
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .insert({
         id: newUser.user.id,
         username,
+        player1_name: player1_name || null,
+        player2_name: player2_name || null,
+        player3_name: player3_name || null,
       });
 
     if (profileError) {

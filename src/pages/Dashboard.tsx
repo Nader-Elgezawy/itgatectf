@@ -14,6 +14,9 @@ interface LeaderboardEntry {
   total_points: number;
   solved_count: number;
   last_solve: string | null;
+  player1_name: string | null;
+  player2_name: string | null;
+  player3_name: string | null;
 }
 
 interface UserStats {
@@ -21,12 +24,13 @@ interface UserStats {
   solvedCount: number;
   rank: number;
   username: string;
+  playerNames: string[];
 }
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [userStats, setUserStats] = useState<UserStats>({ totalPoints: 0, solvedCount: 0, rank: 0, username: '' });
+  const [userStats, setUserStats] = useState<UserStats>({ totalPoints: 0, solvedCount: 0, rank: 0, username: '', playerNames: [] });
   const [totalChallenges, setTotalChallenges] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const { isExpired: timerExpired } = useCompetitionTimer();
@@ -34,7 +38,6 @@ export default function Dashboard() {
   useEffect(() => {
     fetchData();
     
-    // Set up real-time subscription for submissions
     const channel = supabase
       .channel('leaderboard-updates')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'submissions' }, () => {
@@ -50,12 +53,10 @@ export default function Dashboard() {
   const fetchData = async () => {
     setIsLoading(true);
     
-    // Fetch leaderboard
     const { data: leaderboardData } = await supabase.rpc('get_leaderboard');
     if (leaderboardData) {
       setLeaderboard(leaderboardData as LeaderboardEntry[]);
       
-      // Find current user's rank
       if (user) {
         const userIndex = leaderboardData.findIndex((entry: LeaderboardEntry) => entry.user_id === user.id);
         if (userIndex !== -1) {
@@ -65,14 +66,13 @@ export default function Dashboard() {
             solvedCount: Number(entry.solved_count) || 0,
             rank: userIndex + 1,
             username: entry.username,
+            playerNames: [entry.player1_name, entry.player2_name, entry.player3_name].filter(Boolean) as string[],
           });
         } else {
-          // User isn't on the leaderboard list (e.g. admin is excluded). Still fetch their stats so
-          // certificate/download can work after they solve at least one challenge.
           const [{ data: profileData }, { data: solvedData }] = await Promise.all([
             supabase
               .from('profiles')
-              .select('username')
+              .select('username, player1_name, player2_name, player3_name')
               .eq('id', user.id)
               .single(),
             supabase
@@ -92,15 +92,18 @@ export default function Dashboard() {
           setUserStats(prev => ({
             ...prev,
             username: profileData?.username ?? prev.username,
+            playerNames: [
+              profileData?.player1_name, 
+              profileData?.player2_name, 
+              profileData?.player3_name
+            ].filter(Boolean) as string[],
             solvedCount,
             totalPoints,
-            // rank stays 0 when not part of leaderboard
           }));
         }
       }
     }
 
-    // Fetch total challenges
     const { count } = await supabase
       .from('challenges')
       .select('*', { count: 'exact', head: true })
@@ -197,7 +200,7 @@ export default function Dashboard() {
                   <Users className="h-6 w-6 text-warning" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground font-mono">Players</p>
+                  <p className="text-sm text-muted-foreground font-mono">Teams</p>
                   <p className="text-2xl font-bold font-mono">{leaderboard.length}</p>
                 </div>
               </div>
@@ -212,6 +215,7 @@ export default function Dashboard() {
         {timerExpired && (
           <Certificate
             participantName={userStats.username}
+            playerNames={userStats.playerNames}
             rank={userStats.rank}
             totalPoints={userStats.totalPoints}
             solvedCount={userStats.solvedCount}
@@ -246,7 +250,7 @@ export default function Dashboard() {
                   <thead>
                     <tr className="border-b border-border">
                       <th className="text-left py-3 px-4 font-mono text-sm text-muted-foreground">Rank</th>
-                      <th className="text-left py-3 px-4 font-mono text-sm text-muted-foreground">Player</th>
+                      <th className="text-left py-3 px-4 font-mono text-sm text-muted-foreground">Team</th>
                       <th className="text-right py-3 px-4 font-mono text-sm text-muted-foreground">Points</th>
                       <th className="text-right py-3 px-4 font-mono text-sm text-muted-foreground">Solved</th>
                       <th className="text-right py-3 px-4 font-mono text-sm text-muted-foreground hidden md:table-cell">
@@ -269,12 +273,19 @@ export default function Dashboard() {
                           </div>
                         </td>
                         <td className="py-3 px-4">
-                          <span className={`font-mono ${entry.user_id === user?.id ? 'text-primary font-semibold' : ''}`}>
-                            {entry.username}
-                            {entry.user_id === user?.id && (
-                              <span className="ml-2 text-xs text-primary">(you)</span>
+                          <div>
+                            <span className={`font-mono ${entry.user_id === user?.id ? 'text-primary font-semibold' : ''}`}>
+                              {entry.username}
+                              {entry.user_id === user?.id && (
+                                <span className="ml-2 text-xs text-primary">(you)</span>
+                              )}
+                            </span>
+                            {(entry.player1_name || entry.player2_name || entry.player3_name) && (
+                              <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                                {[entry.player1_name, entry.player2_name, entry.player3_name].filter(Boolean).join(' • ')}
+                              </p>
                             )}
-                          </span>
+                          </div>
                         </td>
                         <td className="py-3 px-4 text-right">
                           <span className="font-mono font-bold text-success">{entry.total_points}</span>

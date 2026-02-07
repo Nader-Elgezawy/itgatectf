@@ -3,7 +3,7 @@ import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield, Users, Flag, FileText, Clock } from 'lucide-react';
 import { ChallengesManager } from '@/components/admin/ChallengesManager';
-import { UsersManager } from '@/components/admin/UsersManager';
+import { TeamsManager } from '@/components/admin/TeamsManager';
 import { SubmissionsViewer } from '@/components/admin/SubmissionsViewer';
 import { TimerControl } from '@/components/admin/TimerControl';
 
@@ -31,9 +31,9 @@ export default function AdminDashboard() {
               <Flag className="h-4 w-4 mr-2" />
               Challenges
             </TabsTrigger>
-            <TabsTrigger value="users" className="font-mono">
+            <TabsTrigger value="teams" className="font-mono">
               <Users className="h-4 w-4 mr-2" />
-              Users
+              Teams
             </TabsTrigger>
             <TabsTrigger value="submissions" className="font-mono">
               <FileText className="h-4 w-4 mr-2" />
@@ -49,8 +49,8 @@ export default function AdminDashboard() {
             <ChallengesManager />
           </TabsContent>
 
-          <TabsContent value="users" className="mt-6">
-            <UsersManager />
+          <TabsContent value="teams" className="mt-6">
+            <TeamsManager />
           </TabsContent>
 
           <TabsContent value="submissions" className="mt-6">
