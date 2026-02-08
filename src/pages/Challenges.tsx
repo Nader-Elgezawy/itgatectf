@@ -70,14 +70,14 @@ export default function Challenges() {
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      'Web': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      'Crypto': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-      'Forensics': 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-      'Pwn': 'bg-red-500/20 text-red-400 border-red-500/30',
-      'Reverse': 'bg-green-500/20 text-green-400 border-green-500/30',
-      'Misc': 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+      'Web': 'bg-primary/15 text-primary border-primary/30',
+      'Crypto': 'bg-warning/15 text-warning border-warning/30',
+      'Forensics': 'bg-secondary/15 text-secondary-foreground border-secondary/30',
+      'Pwn': 'bg-destructive/15 text-destructive border-destructive/30',
+      'Reverse': 'bg-success/15 text-success border-success/30',
+      'Misc': 'bg-muted/30 text-muted-foreground border-muted',
     };
-    return colors[category] || 'bg-primary/20 text-primary border-primary/30';
+    return colors[category] || 'bg-primary/15 text-primary border-primary/30';
   };
 
   return (
