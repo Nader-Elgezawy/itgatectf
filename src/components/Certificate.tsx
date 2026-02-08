@@ -2,7 +2,6 @@ import { useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Award, Download, Star } from 'lucide-react';
-
 interface CertificateProps {
   participantName: string;
   playerNames: string[];
@@ -11,23 +10,20 @@ interface CertificateProps {
   solvedCount: number;
   totalParticipants: number;
 }
-
-export function Certificate({ 
-  participantName, 
+export function Certificate({
+  participantName,
   playerNames,
-  rank, 
-  totalPoints, 
+  rank,
+  totalPoints,
   solvedCount,
-  totalParticipants 
+  totalParticipants
 }: CertificateProps) {
   const certificateRef = useRef<HTMLDivElement>(null);
-
   const getOrdinalSuffix = (n: number) => {
     const s = ["th", "st", "nd", "rd"];
     const v = n % 100;
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
   };
-
   const getRankTitle = (rank: number) => {
     if (rank === 0) return 'Participant';
     if (rank === 1) return 'Champion';
@@ -36,19 +32,15 @@ export function Certificate({
     if (rank <= 10) return 'Top 10 Finalist';
     return 'Participant';
   };
-
   const downloadCertificate = async () => {
     if (!certificateRef.current) return;
-
     try {
       const html2canvas = (await import('html2canvas')).default;
-      
       const canvas = await html2canvas(certificateRef.current, {
         scale: 2,
         backgroundColor: null,
-        useCORS: true,
+        useCORS: true
       });
-
       const link = document.createElement('a');
       link.download = `ITGate_CTF_Certificate_${participantName.replace(/\s+/g, '_')}.png`;
       link.href = canvas.toDataURL('image/png');
@@ -57,15 +49,11 @@ export function Certificate({
       console.error('Failed to generate certificate:', error);
     }
   };
-
   if (!participantName || solvedCount === 0) {
     return null;
   }
-
   const validPlayerNames = playerNames.filter(Boolean);
-
-  return (
-    <Card className="cyber-card overflow-hidden">
+  return <Card className="cyber-card overflow-hidden">
       <CardHeader>
         <CardTitle className="font-mono flex items-center gap-2">
           <Award className="h-5 w-5 text-primary" />
@@ -74,10 +62,7 @@ export function Certificate({
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Certificate Preview */}
-        <div 
-          ref={certificateRef}
-          className="relative bg-gradient-to-br from-card via-background to-card border-2 border-primary/40 rounded-lg p-8 md:p-12 overflow-hidden"
-        >
+        <div ref={certificateRef} className="relative bg-gradient-to-br from-card via-background to-card border-2 border-primary/40 rounded-lg p-8 md:p-12 overflow-hidden">
           {/* Decorative Elements */}
           <div className="absolute top-0 left-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 right-0 w-40 h-40 bg-accent/10 rounded-full blur-3xl" />
@@ -94,12 +79,7 @@ export function Certificate({
             {/* Header */}
             <div className="space-y-2">
               <div className="flex justify-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star 
-                    key={i} 
-                    className={`h-5 w-5 ${rank > 0 && i < Math.min(5, 6 - Math.ceil(rank / 2)) ? 'text-primary fill-primary' : 'text-muted-foreground/30'}`} 
-                  />
-                ))}
+                {[...Array(5)].map((_, i) => <Star key={i} className={`h-5 w-5 ${rank > 0 && i < Math.min(5, 6 - Math.ceil(rank / 2)) ? 'text-primary fill-primary' : 'text-muted-foreground/30'}`} />)}
               </div>
               <h2 className="text-sm md:text-base font-mono uppercase tracking-[0.3em] text-muted-foreground">
                 Certificate of Achievement
@@ -133,20 +113,16 @@ export function Certificate({
                 {participantName}
               </h3>
               {/* Player Names */}
-              {validPlayerNames.length > 0 && (
-                <div className="space-y-1 pt-2">
+              {validPlayerNames.length > 0 && <div className="space-y-1 pt-2">
                   <p className="text-xs text-muted-foreground font-mono uppercase tracking-wider">
                     Team Members
                   </p>
                   <div className="flex flex-wrap justify-center gap-x-6 gap-y-1">
-                    {validPlayerNames.map((name, i) => (
-                      <span key={i} className="text-base md:text-lg font-semibold font-mono text-accent">
+                    {validPlayerNames.map((name, i) => <span key={i} className="text-base md:text-lg font-semibold font-mono text-[#141414]">
                         {name}
-                      </span>
-                    ))}
+                      </span>)}
                   </div>
-                </div>
-              )}
+                </div>}
             </div>
 
             {/* Achievement */}
@@ -158,9 +134,7 @@ export function Certificate({
                 <span className="text-4xl md:text-6xl font-bold font-mono text-primary">
                   {rank > 0 ? getOrdinalSuffix(rank) : 'Unranked'}
                 </span>
-                <span className="text-lg md:text-xl font-semibold font-mono text-accent">
-                  {getRankTitle(rank)}
-                </span>
+                
               </div>
             </div>
 
@@ -189,7 +163,11 @@ export function Certificate({
                 <p>Cybersecurity Competition</p>
               </div>
               <div className="text-center md:text-right">
-                <p>{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p>{new Date().toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}</p>
                 <p className="text-primary/70">Certificate ID: {crypto.randomUUID().slice(0, 8).toUpperCase()}</p>
               </div>
             </div>
@@ -198,16 +176,11 @@ export function Certificate({
 
         {/* Download Button */}
         <div className="flex justify-center">
-          <Button 
-            onClick={downloadCertificate}
-            className="font-mono cyber-glow gap-2"
-            size="lg"
-          >
+          <Button onClick={downloadCertificate} className="font-mono cyber-glow gap-2" size="lg">
             <Download className="h-5 w-5" />
             Download Certificate
           </Button>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 }
