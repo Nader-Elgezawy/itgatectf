@@ -86,6 +86,9 @@ export function Certificate({
           <div className="absolute bottom-4 left-4 w-16 h-16 border-l-2 border-b-2 border-primary/30" />
           <div className="absolute bottom-4 right-4 w-16 h-16 border-r-2 border-b-2 border-primary/30" />
 
+          {/* Logo in corner */}
+          <img src="/IT-Gate(1).png" alt="IT Gate Logo" className="absolute top-6 left-6 h-14 w-14 object-contain z-20" />
+
           {/* Certificate Content */}
           <div className="relative z-10 text-center space-y-6">
             {/* Header */}

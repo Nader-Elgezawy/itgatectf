@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { Shield, Flag, Trophy, Users, LogOut, Terminal } from 'lucide-react';
+import { Shield, Flag, Trophy, Users, LogOut } from 'lucide-react';
 
 interface LayoutProps {
   children: ReactNode;
@@ -35,7 +35,7 @@ export function Layout({ children }: LayoutProps) {
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link to="/dashboard" className="flex items-center gap-2 group">
-            <Terminal className="h-6 w-6 text-primary group-hover:animate-glow-pulse" />
+            <img src="/IT-Gate(1).png" alt="IT Gate Logo" className="h-8 w-8 object-contain group-hover:animate-glow-pulse" />
             <span className="text-xl font-bold font-mono">
               <span className="text-primary">IT Gate</span>
               <span className="text-muted-foreground"> CTF</span>
