@@ -121,11 +121,11 @@ export default function Dashboard() {
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
-        return <Medal className="h-5 w-5 text-yellow-500" />;
+        return <Medal className="h-5 w-5 text-primary" />;
       case 2:
-        return <Medal className="h-5 w-5 text-gray-400" />;
+        return <Medal className="h-5 w-5 text-secondary" />;
       case 3:
-        return <Medal className="h-5 w-5 text-amber-600" />;
+        return <Medal className="h-5 w-5 text-warning" />;
       default:
         return <span className="text-muted-foreground font-mono">#{rank}</span>;
     }

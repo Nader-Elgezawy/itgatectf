@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Terminal, Lock, Mail, AlertCircle, Loader2 } from 'lucide-react';
+import { Lock, Mail, AlertCircle, Loader2, Terminal } from 'lucide-react';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -58,7 +58,7 @@ export default function Login() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-4">
-            <Terminal className="h-10 w-10 text-primary animate-glow-pulse" />
+            <img src="/IT-Gate(1).png" alt="IT Gate Logo" className="h-12 w-12 object-contain animate-glow-pulse" />
             <h1 className="text-3xl font-bold font-mono">
               <span className="text-primary">IT Gate</span>
               <span className="text-foreground"> CTF</span>
