@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth';
 import { Certificate } from '@/components/Certificate';
 import { CompetitionTimer } from '@/components/CompetitionTimer';
 import { useCompetitionTimer } from '@/hooks/useCompetitionTimer';
+import VerifyCertificate from './VerifyCertificate'; // استدعاء component التحقق
 
 interface LeaderboardEntry {
   user_id: string;
@@ -31,14 +32,22 @@ interface UserStats {
 export default function Dashboard() {
   const { user } = useAuth();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [userStats, setUserStats] = useState<UserStats>({ totalPoints: 0, solvedCount: 0, rank: 0, username: '', playerNames: [], certificateId: '' });
+  const [userStats, setUserStats] = useState<UserStats>({
+    totalPoints: 0,
+    solvedCount: 0,
+    rank: 0,
+    username: '',
+    playerNames: [],
+    certificateId: '',
+  });
   const [totalChallenges, setTotalChallenges] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [showVerify, setShowVerify] = useState(false); // للتحكم في إظهار صفحة التحقق
   const { isExpired: timerExpired } = useCompetitionTimer();
 
   useEffect(() => {
     fetchData();
-    
+
     const channel = supabase
       .channel('leaderboard-updates')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'submissions' }, () => {
@@ -53,13 +62,12 @@ export default function Dashboard() {
 
   const fetchData = async () => {
     setIsLoading(true);
-    
+
     const { data: leaderboardData } = await supabase.rpc('get_leaderboard');
     if (leaderboardData) {
       setLeaderboard(leaderboardData as LeaderboardEntry[]);
-      
+
       if (user) {
-        // Fetch profile with certificate_id
         const { data: profileData } = await supabase
           .from('profiles')
           .select('username, player1_name, player2_name, player3_name, certificate_id')
@@ -96,8 +104,8 @@ export default function Dashboard() {
             ...prev,
             username: profileData?.username ?? prev.username,
             playerNames: [
-              profileData?.player1_name, 
-              profileData?.player2_name, 
+              profileData?.player1_name,
+              profileData?.player2_name,
               profileData?.player3_name
             ].filter(Boolean) as string[],
             certificateId: profileData?.certificate_id || '',
@@ -151,6 +159,7 @@ export default function Dashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Rank */}
           <Card className="cyber-card">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
@@ -167,6 +176,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
+          {/* Points */}
           <Card className="cyber-card">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
@@ -181,6 +191,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
+          {/* Solved */}
           <Card className="cyber-card">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
@@ -197,6 +208,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
+          {/* Teams */}
           <Card className="cyber-card">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
@@ -215,7 +227,7 @@ export default function Dashboard() {
         {/* Competition Timer */}
         <CompetitionTimer />
 
-        {/* Certificate Preview - only visible after timer expires */}
+        {/* Certificate Preview */}
         {timerExpired && (
           <Certificate
             participantName={userStats.username}
@@ -227,6 +239,19 @@ export default function Dashboard() {
             certificateId={userStats.certificateId}
           />
         )}
+
+        {/* Verify Certificate Button */}
+        <div className="my-4 text-center">
+          <button
+            onClick={() => setShowVerify(!showVerify)}
+            className="px-4 py-2 bg-primary text-white rounded font-mono hover:bg-primary/80 transition"
+          >
+            {showVerify ? 'Hide Certificate Verification' : 'Verify Certificate'}
+          </button>
+        </div>
+
+        {/* Show VerifyCertificate Component */}
+        {showVerify && <VerifyCertificate />}
 
         {/* Leaderboard */}
         <Card className="cyber-card">
