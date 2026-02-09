@@ -85,6 +85,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          certificate_id: string
           created_at: string
           id: string
           player1_name: string | null
@@ -93,6 +94,7 @@ export type Database = {
           username: string
         }
         Insert: {
+          certificate_id?: string
           created_at?: string
           id: string
           player1_name?: string | null
@@ -101,6 +103,7 @@ export type Database = {
           username: string
         }
         Update: {
+          certificate_id?: string
           created_at?: string
           id?: string
           player1_name?: string | null

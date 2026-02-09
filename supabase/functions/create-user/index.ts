@@ -72,7 +72,10 @@ serve(async (req) => {
       );
     }
 
-    // Create profile with player names
+    // Generate unique certificate ID server-side
+    const certificateId = 'ITGCTF-' + crypto.randomUUID().slice(0, 8).toUpperCase();
+
+    // Create profile with player names and certificate ID
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .insert({
@@ -81,6 +84,7 @@ serve(async (req) => {
         player1_name: player1_name || null,
         player2_name: player2_name || null,
         player3_name: player3_name || null,
+        certificate_id: certificateId,
       });
 
     if (profileError) {
