@@ -24,10 +24,10 @@ export default function VerifyCertificate() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const id = searchParams.get('id');
-    if (id) {
-      verify(id);
-    }
+    // const id = searchParams.get('id');
+    // if (id) {
+    //   verify(id);
+    // }
   }, []);
 
   const verify = async (id: string) => {
