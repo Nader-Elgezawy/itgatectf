@@ -2,6 +2,9 @@ import { useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Award, Download, Star } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+
 interface CertificateProps {
   participantName: string;
   playerNames: string[];
@@ -9,51 +12,57 @@ interface CertificateProps {
   totalPoints: number;
   solvedCount: number;
   totalParticipants: number;
+  certificateId: string;
 }
+
 export function Certificate({
   participantName,
   playerNames,
   rank,
   totalPoints,
   solvedCount,
-  totalParticipants
+  totalParticipants,
+  certificateId,
 }: CertificateProps) {
   const certificateRef = useRef<HTMLDivElement>(null);
+
   const getOrdinalSuffix = (n: number) => {
     const s = ["th", "st", "nd", "rd"];
     const v = n % 100;
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
   };
-  const getRankTitle = (rank: number) => {
-    if (rank === 0) return 'Participant';
-    if (rank === 1) return 'Champion';
-    if (rank === 2) return '1st Runner-up';
-    if (rank === 3) return '2nd Runner-up';
-    if (rank <= 10) return 'Top 10 Finalist';
-    return 'Participant';
-  };
+
   const downloadCertificate = async () => {
     if (!certificateRef.current) return;
     try {
-      const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(certificateRef.current, {
         scale: 2,
-        backgroundColor: null,
-        useCORS: true
+        backgroundColor: '#ffffff',
+        useCORS: true,
       });
-      const link = document.createElement('a');
-      link.download = `ITGate_CTF_Certificate_${participantName.replace(/\s+/g, '_')}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [canvas.width / 2, canvas.height / 2],
+      });
+
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2);
+      pdf.save(`ITGate_CTF_Certificate_${participantName.replace(/\s+/g, '_')}.pdf`);
     } catch (error) {
       console.error('Failed to generate certificate:', error);
     }
   };
-  if (!participantName || solvedCount === 0) {
+
+  if (!participantName || solvedCount === 0 || !certificateId) {
     return null;
   }
+
   const validPlayerNames = playerNames.filter(Boolean);
-  return <Card className="cyber-card overflow-hidden">
+
+  return (
+    <Card className="cyber-card overflow-hidden">
       <CardHeader>
         <CardTitle className="font-mono flex items-center gap-2">
           <Award className="h-5 w-5 text-primary" />
@@ -71,74 +80,57 @@ export function Certificate({
           <div className="absolute bottom-4 left-4 w-16 h-16 border-l-2 border-b-2 border-primary/30" />
           <div className="absolute bottom-4 right-4 w-16 h-16 border-r-2 border-b-2 border-primary/30" />
 
-          {/* Logo in corner */}
+          {/* Logo */}
           <img src="/IT-Gate(1).png" alt="IT Gate Logo" className="absolute top-6 left-6 h-14 w-14 object-contain z-20" />
 
           {/* Certificate Content */}
           <div className="relative z-10 text-center space-y-6">
-            {/* Header */}
             <div className="space-y-2">
               <div className="flex justify-center gap-1">
-                {[...Array(5)].map((_, i) => <Star key={i} className={`h-5 w-5 ${rank > 0 && i < Math.min(5, 6 - Math.ceil(rank / 2)) ? 'text-primary fill-primary' : 'text-muted-foreground/30'}`} />)}
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className={`h-5 w-5 ${rank > 0 && i < Math.min(5, 6 - Math.ceil(rank / 2)) ? 'text-primary fill-primary' : 'text-muted-foreground/30'}`} />
+                ))}
               </div>
               <h2 className="text-sm md:text-base font-mono uppercase tracking-[0.3em] text-muted-foreground">
                 Certificate of Achievement
               </h2>
             </div>
 
-            {/* Logo/Title */}
             <div className="space-y-1">
-              <h1 className="text-2xl md:text-4xl font-bold font-mono text-gradient">
-                IT Gate CTF
-              </h1>
-              <p className="text-xs md:text-sm text-muted-foreground font-mono">
-                Capture The Flag Competition
-              </p>
+              <h1 className="text-2xl md:text-4xl font-bold font-mono text-gradient">IT Gate CTF</h1>
+              <p className="text-xs md:text-sm text-muted-foreground font-mono">Capture The Flag Competition</p>
             </div>
 
-            {/* Divider */}
             <div className="flex items-center justify-center gap-4">
               <div className="h-px w-16 bg-gradient-to-r from-transparent via-primary/50 to-primary" />
               <Award className="h-6 w-6 text-primary" />
               <div className="h-px w-16 bg-gradient-to-l from-transparent via-primary/50 to-primary" />
             </div>
 
-            {/* Awarded To */}
             <div className="space-y-3">
-              <p className="text-xs md:text-sm text-muted-foreground font-mono uppercase tracking-wider">
-                This is to certify that
-              </p>
-              {/* Team Name */}
+              <p className="text-xs md:text-sm text-muted-foreground font-mono uppercase tracking-wider">This is to certify that</p>
               <h3 className="text-2xl md:text-4xl font-bold font-mono text-foreground px-4 py-2 border-b-2 border-primary/50 inline-block">
                 {participantName}
               </h3>
-              {/* Player Names */}
-              {validPlayerNames.length > 0 && <div className="space-y-1 pt-2">
-                  <p className="text-xs text-muted-foreground font-mono uppercase tracking-wider">
-                    Team Members
-                  </p>
+              {validPlayerNames.length > 0 && (
+                <div className="space-y-1 pt-2">
+                  <p className="text-xs text-muted-foreground font-mono uppercase tracking-wider">Team Members</p>
                   <div className="flex flex-wrap justify-center gap-x-6 gap-y-1">
-                    {validPlayerNames.map((name, i) => <span key={i} className="text-base md:text-lg font-semibold font-mono text-[#141414]">
-                        {name}
-                      </span>)}
+                    {validPlayerNames.map((name, i) => (
+                      <span key={i} className="text-base md:text-lg font-semibold font-mono text-foreground">{name}</span>
+                    ))}
                   </div>
-                </div>}
+                </div>
+              )}
             </div>
 
-            {/* Achievement */}
             <div className="space-y-2">
-              <p className="text-xs md:text-sm text-muted-foreground font-mono">
-                has successfully participated and achieved the rank of
-              </p>
-              <div className="flex flex-col items-center gap-2">
-                <span className="text-4xl md:text-6xl font-bold font-mono text-primary">
-                  {rank > 0 ? getOrdinalSuffix(rank) : 'Unranked'}
-                </span>
-                
-              </div>
+              <p className="text-xs md:text-sm text-muted-foreground font-mono">has successfully participated and achieved the rank of</p>
+              <span className="text-4xl md:text-6xl font-bold font-mono text-primary">
+                {rank > 0 ? getOrdinalSuffix(rank) : 'Unranked'}
+              </span>
             </div>
 
-            {/* Stats */}
             <div className="flex justify-center gap-8 pt-4">
               <div className="text-center">
                 <p className="text-2xl md:text-3xl font-bold font-mono text-success">{totalPoints}</p>
@@ -146,7 +138,7 @@ export function Certificate({
               </div>
               <div className="w-px bg-border" />
               <div className="text-center">
-                <p className="text-2xl md:text-3xl font-bold font-mono text-accent">{solvedCount}</p>
+                <p className="text-2xl md:text-3xl font-bold font-mono text-accent-foreground">{solvedCount}</p>
                 <p className="text-xs text-muted-foreground font-mono uppercase">Challenges</p>
               </div>
               <div className="w-px bg-border" />
@@ -156,19 +148,14 @@ export function Certificate({
               </div>
             </div>
 
-            {/* Footer */}
             <div className="pt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground font-mono">
               <div className="text-center md:text-left">
                 <p className="text-primary font-semibold">IT Gate CTF</p>
                 <p>Cybersecurity Competition</p>
               </div>
               <div className="text-center md:text-right">
-                <p>{new Date().toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}</p>
-                <p className="text-primary/70">Certificate ID: {crypto.randomUUID().slice(0, 8).toUpperCase()}</p>
+                <p>{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p className="text-primary/70">Certificate ID: {certificateId}</p>
               </div>
             </div>
           </div>
@@ -178,9 +165,10 @@ export function Certificate({
         <div className="flex justify-center">
           <Button onClick={downloadCertificate} className="font-mono cyber-glow gap-2" size="lg">
             <Download className="h-5 w-5" />
-            Download Certificate
+            Download Certificate (PDF)
           </Button>
         </div>
       </CardContent>
-    </Card>;
+    </Card>
+  );
 }

@@ -25,12 +25,13 @@ interface UserStats {
   rank: number;
   username: string;
   playerNames: string[];
+  certificateId: string;
 }
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [userStats, setUserStats] = useState<UserStats>({ totalPoints: 0, solvedCount: 0, rank: 0, username: '', playerNames: [] });
+  const [userStats, setUserStats] = useState<UserStats>({ totalPoints: 0, solvedCount: 0, rank: 0, username: '', playerNames: [], certificateId: '' });
   const [totalChallenges, setTotalChallenges] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const { isExpired: timerExpired } = useCompetitionTimer();
@@ -58,6 +59,13 @@ export default function Dashboard() {
       setLeaderboard(leaderboardData as LeaderboardEntry[]);
       
       if (user) {
+        // Fetch profile with certificate_id
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('username, player1_name, player2_name, player3_name, certificate_id')
+          .eq('id', user.id)
+          .maybeSingle();
+
         const userIndex = leaderboardData.findIndex((entry: LeaderboardEntry) => entry.user_id === user.id);
         if (userIndex !== -1) {
           const entry = leaderboardData[userIndex] as LeaderboardEntry;
@@ -67,21 +75,16 @@ export default function Dashboard() {
             rank: userIndex + 1,
             username: entry.username,
             playerNames: [entry.player1_name, entry.player2_name, entry.player3_name].filter(Boolean) as string[],
+            certificateId: profileData?.certificate_id || '',
           });
         } else {
-          const [{ data: profileData }, { data: solvedData }] = await Promise.all([
-            supabase
-              .from('profiles')
-              .select('username, player1_name, player2_name, player3_name')
-              .eq('id', user.id)
-              .single(),
-            supabase
-              .from('submissions')
-              .select('challenge_id, challenges(points)')
-              .eq('user_id', user.id)
-              .eq('is_correct', true),
-          ]);
+          const solvedRes = await supabase
+            .from('submissions')
+            .select('challenge_id, challenges(points)')
+            .eq('user_id', user.id)
+            .eq('is_correct', true);
 
+          const solvedData = solvedRes.data;
           const uniqueSolved = new Set((solvedData ?? []).map((s: any) => s.challenge_id));
           const solvedCount = uniqueSolved.size;
           const totalPoints = (solvedData ?? []).reduce((sum: number, s: any) => {
@@ -97,6 +100,7 @@ export default function Dashboard() {
               profileData?.player2_name, 
               profileData?.player3_name
             ].filter(Boolean) as string[],
+            certificateId: profileData?.certificate_id || '',
             solvedCount,
             totalPoints,
           }));
@@ -220,6 +224,7 @@ export default function Dashboard() {
             totalPoints={userStats.totalPoints}
             solvedCount={userStats.solvedCount}
             totalParticipants={leaderboard.length}
+            certificateId={userStats.certificateId}
           />
         )}
 

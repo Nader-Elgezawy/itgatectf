@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Challenges from "./pages/Challenges";
 import ChallengeDetail from "./pages/ChallengeDetail";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import VerifyCertificate from "./pages/VerifyCertificate";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/verify" element={<VerifyCertificate />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route
               path="/dashboard"
