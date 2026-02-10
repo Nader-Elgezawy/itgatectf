@@ -15,6 +15,21 @@ interface CertificateProps {
   certificateId: string;
 }
 
+// Inline color constants for html2canvas compatibility
+const COLORS = {
+  primary: '#d4920a',
+  primaryLight: 'rgba(212, 146, 10, 0.5)',
+  primaryFaint: 'rgba(212, 146, 10, 0.1)',
+  success: '#3a9e5c',
+  warning: '#d4920a',
+  accent: '#5a7aad',
+  text: '#1a1a1a',
+  textMuted: '#6b7280',
+  border: '#e5e7eb',
+  bg: '#ffffff',
+  bgFaint: '#fafafa',
+};
+
 export function Certificate({
   participantName,
   playerNames,
@@ -36,19 +51,20 @@ export function Certificate({
     if (!certificateRef.current) return;
     try {
       const canvas = await html2canvas(certificateRef.current, {
-        scale: 2,
+        scale: 3,
         backgroundColor: '#ffffff',
         useCORS: true,
+        logging: false,
       });
 
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'px',
-        format: [canvas.width / 2, canvas.height / 2],
+        format: [canvas.width / 3, canvas.height / 3],
       });
 
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2);
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 3, canvas.height / 3);
       pdf.save(`ITGate_CTF_Certificate_${participantName.replace(/\s+/g, '_')}.pdf`);
     } catch (error) {
       console.error('Failed to generate certificate:', error);
@@ -61,6 +77,8 @@ export function Certificate({
 
   const validPlayerNames = playerNames.filter(Boolean);
 
+  const starCount = rank > 0 ? Math.min(5, 6 - Math.ceil(rank / 2)) : 0;
+
   return (
     <Card className="cyber-card overflow-hidden">
       <CardHeader>
@@ -70,99 +88,136 @@ export function Certificate({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Certificate Preview */}
-        <div ref={certificateRef} className="relative bg-gradient-to-br from-card via-background to-card border-2 border-primary/40 rounded-lg p-8 md:p-12 overflow-hidden">
-          {/* Decorative Elements */}
-          <div className="absolute top-0 left-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-0 w-40 h-40 bg-accent/10 rounded-full blur-3xl" />
-          <div className="absolute top-4 left-4 w-16 h-16 border-l-2 border-t-2 border-primary/30" />
-          <div className="absolute top-4 right-4 w-16 h-16 border-r-2 border-t-2 border-primary/30" />
-          <div className="absolute bottom-4 left-4 w-16 h-16 border-l-2 border-b-2 border-primary/30" />
-          <div className="absolute bottom-4 right-4 w-16 h-16 border-r-2 border-b-2 border-primary/30" />
+        {/* Certificate Preview - uses INLINE STYLES for html2canvas compatibility */}
+        <div
+          ref={certificateRef}
+          style={{
+            position: 'relative',
+            background: `linear-gradient(135deg, ${COLORS.bg}, ${COLORS.bgFaint}, ${COLORS.bg})`,
+            border: `2px solid ${COLORS.primaryLight}`,
+            borderRadius: '12px',
+            padding: '48px',
+            overflow: 'hidden',
+            fontFamily: "'JetBrains Mono', 'Courier New', monospace",
+          }}
+        >
+          {/* Corner decorations */}
+          <div style={{ position: 'absolute', top: '16px', left: '16px', width: '64px', height: '64px', borderLeft: `2px solid ${COLORS.primaryLight}`, borderTop: `2px solid ${COLORS.primaryLight}` }} />
+          <div style={{ position: 'absolute', top: '16px', right: '16px', width: '64px', height: '64px', borderRight: `2px solid ${COLORS.primaryLight}`, borderTop: `2px solid ${COLORS.primaryLight}` }} />
+          <div style={{ position: 'absolute', bottom: '16px', left: '16px', width: '64px', height: '64px', borderLeft: `2px solid ${COLORS.primaryLight}`, borderBottom: `2px solid ${COLORS.primaryLight}` }} />
+          <div style={{ position: 'absolute', bottom: '16px', right: '16px', width: '64px', height: '64px', borderRight: `2px solid ${COLORS.primaryLight}`, borderBottom: `2px solid ${COLORS.primaryLight}` }} />
 
           {/* Logo */}
-          <img src="/IT-Gate(1).png" alt="IT Gate Logo" className="absolute top-6 left-6 h-14 w-14 object-contain z-20" />
+          <img
+            src="/IT-Gate(1).png"
+            alt="IT Gate Logo"
+            crossOrigin="anonymous"
+            style={{ position: 'absolute', top: '24px', left: '24px', height: '56px', width: '56px', objectFit: 'contain', zIndex: 20 }}
+          />
 
-          {/* Certificate Content */}
-          <div className="relative z-10 text-center space-y-6">
-            <div className="space-y-2">
-              <div className="flex justify-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className={`h-5 w-5 ${rank > 0 && i < Math.min(5, 6 - Math.ceil(rank / 2)) ? 'text-primary fill-primary' : 'text-muted-foreground/30'}`} />
-                ))}
-              </div>
-              <h2 className="text-sm md:text-base font-mono uppercase tracking-[0.3em] text-muted-foreground">
-                Certificate of Achievement
-              </h2>
+          {/* Content */}
+          <div style={{ position: 'relative', zIndex: 10, textAlign: 'center' }}>
+            {/* Stars */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', marginBottom: '8px' }}>
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    color: i < starCount ? COLORS.primary : '#d1d5db',
+                    fill: i < starCount ? COLORS.primary : 'none',
+                  }}
+                />
+              ))}
             </div>
 
-            <div className="space-y-1">
-              <h1 className="text-2xl md:text-4xl font-bold font-mono text-gradient">IT Gate CTF</h1>
-              <p className="text-xs md:text-sm text-muted-foreground font-mono">Capture The Flag Competition</p>
+            {/* Subtitle */}
+            <p style={{ fontSize: '12px', letterSpacing: '0.3em', textTransform: 'uppercase', color: COLORS.textMuted, marginBottom: '16px' }}>
+              Certificate of Achievement
+            </p>
+
+            {/* Title */}
+            <h1 style={{ fontSize: '36px', fontWeight: 'bold', color: COLORS.primary, marginBottom: '4px' }}>
+              IT Gate CTF
+            </h1>
+            <p style={{ fontSize: '13px', color: COLORS.textMuted, marginBottom: '20px' }}>
+              Capture The Flag Competition
+            </p>
+
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '20px' }}>
+              <div style={{ height: '1px', width: '64px', background: `linear-gradient(to right, transparent, ${COLORS.primaryLight}, ${COLORS.primary})` }} />
+              <Award style={{ width: '24px', height: '24px', color: COLORS.primary }} />
+              <div style={{ height: '1px', width: '64px', background: `linear-gradient(to left, transparent, ${COLORS.primaryLight}, ${COLORS.primary})` }} />
             </div>
 
-            <div className="flex items-center justify-center gap-4">
-              <div className="h-px w-16 bg-gradient-to-r from-transparent via-primary/50 to-primary" />
-              <Award className="h-6 w-6 text-primary" />
-              <div className="h-px w-16 bg-gradient-to-l from-transparent via-primary/50 to-primary" />
-            </div>
+            {/* Certify text */}
+            <p style={{ fontSize: '12px', letterSpacing: '0.2em', textTransform: 'uppercase', color: COLORS.textMuted, marginBottom: '12px' }}>
+              This is to certify that
+            </p>
 
-            <div className="space-y-3">
-              <p className="text-xs md:text-sm text-muted-foreground font-mono uppercase tracking-wider">This is to certify that</p>
-              <h3 className="text-2xl md:text-4xl font-bold font-mono text-foreground px-4 py-2 border-b-2 border-primary/50 inline-block">
-                {participantName}
-              </h3>
-              {validPlayerNames.length > 0 && (
-                <div className="space-y-1 pt-2">
-                  <p className="text-xs text-muted-foreground font-mono uppercase tracking-wider">Team Members</p>
-                  <div className="flex flex-wrap justify-center gap-x-6 gap-y-1">
-                    {validPlayerNames.map((name, i) => (
-                      <span key={i} className="text-base md:text-lg font-semibold font-mono text-foreground">{name}</span>
-                    ))}
-                  </div>
+            {/* Team name */}
+            <h2 style={{ fontSize: '32px', fontWeight: 'bold', color: COLORS.text, borderBottom: `2px solid ${COLORS.primaryLight}`, display: 'inline-block', padding: '8px 16px', marginBottom: '12px' }}>
+              {participantName}
+            </h2>
+
+            {/* Team members */}
+            {validPlayerNames.length > 0 && (
+              <div style={{ marginTop: '12px', marginBottom: '16px' }}>
+                <p style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: COLORS.textMuted, marginBottom: '4px' }}>
+                  Team Members
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', flexWrap: 'wrap' as const }}>
+                  {validPlayerNames.map((name, i) => (
+                    <span key={i} style={{ fontSize: '16px', fontWeight: 600, color: COLORS.text }}>{name}</span>
+                  ))}
                 </div>
-              )}
+              </div>
+            )}
+
+            {/* Rank */}
+            <p style={{ fontSize: '13px', color: COLORS.textMuted, marginBottom: '8px' }}>
+              has successfully participated and achieved the rank of
+            </p>
+            <p style={{ fontSize: '52px', fontWeight: 'bold', color: COLORS.primary, marginBottom: '16px' }}>
+              {rank > 0 ? getOrdinalSuffix(rank) : 'Unranked'}
+            </p>
+
+            {/* Stats */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', paddingTop: '16px' }}>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: '28px', fontWeight: 'bold', color: COLORS.success }}>{totalPoints}</p>
+                <p style={{ fontSize: '11px', textTransform: 'uppercase', color: COLORS.textMuted }}>Points</p>
+              </div>
+              <div style={{ width: '1px', background: COLORS.border }} />
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: '28px', fontWeight: 'bold', color: COLORS.text }}>{solvedCount}</p>
+                <p style={{ fontSize: '11px', textTransform: 'uppercase', color: COLORS.textMuted }}>Challenges</p>
+              </div>
+              <div style={{ width: '1px', background: COLORS.border }} />
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: '28px', fontWeight: 'bold', color: COLORS.warning }}>{rank > 0 ? `#${rank}` : '—'}</p>
+                <p style={{ fontSize: '11px', textTransform: 'uppercase', color: COLORS.textMuted }}>{rank > 0 ? `of ${totalParticipants}` : 'Position'}</p>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-xs md:text-sm text-muted-foreground font-mono">has successfully participated and achieved the rank of</p>
-              <span className="text-4xl md:text-6xl font-bold font-mono text-primary">
-                {rank > 0 ? getOrdinalSuffix(rank) : 'Unranked'}
-              </span>
-            </div>
-
-            <div className="flex justify-center gap-8 pt-4">
-              <div className="text-center">
-                <p className="text-2xl md:text-3xl font-bold font-mono text-success">{totalPoints}</p>
-                <p className="text-xs text-muted-foreground font-mono uppercase">Points</p>
-              </div>
-              <div className="w-px bg-border" />
-              <div className="text-center">
-                <p className="text-2xl md:text-3xl font-bold font-mono text-accent-foreground">{solvedCount}</p>
-                <p className="text-xs text-muted-foreground font-mono uppercase">Challenges</p>
-              </div>
-              <div className="w-px bg-border" />
-              <div className="text-center">
-                <p className="text-2xl md:text-3xl font-bold font-mono text-warning">{rank > 0 ? `#${rank}` : '—'}</p>
-                <p className="text-xs text-muted-foreground font-mono uppercase">{rank > 0 ? `of ${totalParticipants}` : 'Position'}</p>
-              </div>
-            </div>
-
-            <div className="pt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground font-mono">
-              <div className="text-center md:text-left">
-                <p className="text-primary font-semibold">IT Gate CTF</p>
+            {/* Footer */}
+            <div style={{ paddingTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: COLORS.textMuted }}>
+              <div style={{ textAlign: 'left' }}>
+                <p style={{ color: COLORS.primary, fontWeight: 600 }}>IT Gate CTF</p>
                 <p>Cybersecurity Competition</p>
               </div>
-              <div className="text-center md:text-right">
+              <div style={{ textAlign: 'right' }}>
                 <p>{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                <p className="text-primary/70">Certificate ID: {certificateId}</p>
+                <p style={{ color: COLORS.primaryLight }}>Certificate ID: {certificateId}</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex justify-center gap-3 flex-wrap">
+        <div className="flex justify-center">
           <Button onClick={downloadCertificate} className="font-mono cyber-glow gap-2" size="lg">
             <Download className="h-5 w-5" />
             Download Certificate (PDF)
