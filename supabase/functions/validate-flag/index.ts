@@ -116,8 +116,16 @@ serve(async (req) => {
       );
     }
 
-    // Check if flag is correct (case-sensitive)
-    const isCorrect = flag.trim() === challenge.flag;
+    // Constant-time flag comparison to prevent timing attacks
+    const submittedFlag = flag.trim();
+    const correctFlag = challenge.flag;
+    let isCorrect = submittedFlag.length === correctFlag.length;
+    const len = Math.max(submittedFlag.length, correctFlag.length);
+    for (let i = 0; i < len; i++) {
+      const a = i < submittedFlag.length ? submittedFlag.charCodeAt(i) : 0;
+      const b = i < correctFlag.length ? correctFlag.charCodeAt(i) : 0;
+      if (a !== b) isCorrect = false;
+    }
 
     // Log the submission
     await supabaseAdmin.from("submissions").insert({
