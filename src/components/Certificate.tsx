@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Download, Star, ExternalLink } from 'lucide-react';
+import { Award, Download, Star } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -166,15 +166,6 @@ export function Certificate({
           <Button onClick={downloadCertificate} className="font-mono cyber-glow gap-2" size="lg">
             <Download className="h-5 w-5" />
             Download Certificate (PDF)
-          </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            className="font-mono gap-2"
-            onClick={() => window.open(`/verify?id=${encodeURIComponent(certificateId)}`, '_blank')}
-          >
-            <ExternalLink className="h-5 w-5" />
-            Verify Certificate
           </Button>
         </div>
       </CardContent>
