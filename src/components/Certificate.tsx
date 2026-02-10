@@ -37,7 +37,7 @@ export function Certificate({
     try {
       const canvas = await html2canvas(certificateRef.current, {
         scale: 2,
-        backgroundColor: '#0f172a', // Changed to dark background
+        backgroundColor: '#ffffff',
         useCORS: true,
       });
 
@@ -70,8 +70,8 @@ export function Certificate({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Certificate Preview - Background color changed */}
-        <div ref={certificateRef} className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-2 border-primary/40 rounded-lg p-8 md:p-12 overflow-hidden">
+        {/* Certificate Preview */}
+        <div ref={certificateRef} className="relative bg-gradient-to-br from-card via-background to-card border-2 border-primary/40 rounded-lg p-8 md:p-12 overflow-hidden">
           {/* Decorative Elements */}
           <div className="absolute top-0 left-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 right-0 w-40 h-40 bg-accent/10 rounded-full blur-3xl" />
@@ -91,18 +91,14 @@ export function Certificate({
                   <Star key={i} className={`h-5 w-5 ${rank > 0 && i < Math.min(5, 6 - Math.ceil(rank / 2)) ? 'text-primary fill-primary' : 'text-muted-foreground/30'}`} />
                 ))}
               </div>
-              <h2 className="text-sm md:text-base font-mono uppercase tracking-[0.3em] text-slate-300"> {/* Color changed */}
+              <h2 className="text-sm md:text-base font-mono uppercase tracking-[0.3em] text-muted-foreground">
                 Certificate of Achievement
               </h2>
             </div>
 
             <div className="space-y-1">
-              <h1 className="text-2xl md:text-4xl font-bold font-mono bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent"> {/* Added gradient */}
-                IT Gate CTF
-              </h1>
-              <p className="text-xs md:text-sm text-slate-400 font-mono"> {/* Color changed */}
-                Capture The Flag Competition
-              </p>
+              <h1 className="text-2xl md:text-4xl font-bold font-mono text-gradient">IT Gate CTF</h1>
+              <p className="text-xs md:text-sm text-muted-foreground font-mono">Capture The Flag Competition</p>
             </div>
 
             <div className="flex items-center justify-center gap-4">
@@ -112,25 +108,16 @@ export function Certificate({
             </div>
 
             <div className="space-y-3">
-              <p className="text-xs md:text-sm text-slate-400 font-mono uppercase tracking-wider"> {/* Color changed */}
-                This is to certify that
-              </p>
-              <h3 className="text-2xl md:text-4xl font-bold font-mono text-white px-4 py-2 inline-block"> {/* Color changed */}
+              <p className="text-xs md:text-sm text-muted-foreground font-mono uppercase tracking-wider">This is to certify that</p>
+              <h3 className="text-2xl md:text-4xl font-bold font-mono text-foreground px-4 py-2 border-b-2 border-primary/50 inline-block">
                 {participantName}
               </h3>
-              {/* Added gradient line under name */}
-              <div className="w-48 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent mx-auto" />
-              
               {validPlayerNames.length > 0 && (
-                <div className="space-y-1 pt-4"> {/* Added padding top */}
-                  <p className="text-xs text-slate-400 font-mono uppercase tracking-wider"> {/* Color changed */}
-                    Team Members
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+                <div className="space-y-1 pt-2">
+                  <p className="text-xs text-muted-foreground font-mono uppercase tracking-wider">Team Members</p>
+                  <div className="flex flex-wrap justify-center gap-x-6 gap-y-1">
                     {validPlayerNames.map((name, i) => (
-                      <span key={i} className="text-base md:text-lg font-semibold font-mono text-white"> {/* Color changed */}
-                        {name}
-                      </span>
+                      <span key={i} className="text-base md:text-lg font-semibold font-mono text-foreground">{name}</span>
                     ))}
                   </div>
                 </div>
@@ -138,9 +125,7 @@ export function Certificate({
             </div>
 
             <div className="space-y-2">
-              <p className="text-xs md:text-sm text-slate-400 font-mono"> {/* Color changed */}
-                has successfully participated and achieved the rank of
-              </p>
+              <p className="text-xs md:text-sm text-muted-foreground font-mono">has successfully participated and achieved the rank of</p>
               <span className="text-4xl md:text-6xl font-bold font-mono text-primary">
                 {rank > 0 ? getOrdinalSuffix(rank) : 'Unranked'}
               </span>
@@ -148,42 +133,28 @@ export function Certificate({
 
             <div className="flex justify-center gap-8 pt-4">
               <div className="text-center">
-                <p className="text-2xl md:text-3xl font-bold font-mono text-emerald-400"> {/* Color changed */}
-                  {totalPoints}
-                </p>
-                <p className="text-xs text-slate-400 font-mono uppercase"> {/* Color changed */}
-                  Points
-                </p>
+                <p className="text-2xl md:text-3xl font-bold font-mono text-success">{totalPoints}</p>
+                <p className="text-xs text-muted-foreground font-mono uppercase">Points</p>
               </div>
-              <div className="w-px bg-slate-700" /> {/* Color changed */}
+              <div className="w-px bg-border" />
               <div className="text-center">
-                <p className="text-2xl md:text-3xl font-bold font-mono text-amber-400"> {/* Color changed */}
-                  {solvedCount}
-                </p>
-                <p className="text-xs text-slate-400 font-mono uppercase"> {/* Color changed */}
-                  Challenges
-                </p>
+                <p className="text-2xl md:text-3xl font-bold font-mono text-accent-foreground">{solvedCount}</p>
+                <p className="text-xs text-muted-foreground font-mono uppercase">Challenges</p>
               </div>
-              <div className="w-px bg-slate-700" /> {/* Color changed */}
+              <div className="w-px bg-border" />
               <div className="text-center">
-                <p className="text-2xl md:text-3xl font-bold font-mono text-purple-400"> {/* Color changed */}
-                  {rank > 0 ? `#${rank}` : '—'}
-                </p>
-                <p className="text-xs text-slate-400 font-mono uppercase"> {/* Color changed */}
-                  {rank > 0 ? `of ${totalParticipants}` : 'Position'}
-                </p>
+                <p className="text-2xl md:text-3xl font-bold font-mono text-warning">{rank > 0 ? `#${rank}` : '—'}</p>
+                <p className="text-xs text-muted-foreground font-mono uppercase">{rank > 0 ? `of ${totalParticipants}` : 'Position'}</p>
               </div>
             </div>
 
-            <div className="pt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-400 font-mono"> {/* Color changed */}
+            <div className="pt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground font-mono">
               <div className="text-center md:text-left">
                 <p className="text-primary font-semibold">IT Gate CTF</p>
                 <p>Cybersecurity Competition</p>
               </div>
               <div className="text-center md:text-right">
-                <p className="text-slate-300"> {/* Color changed */}
-                  {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                </p>
+                <p>{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                 <p className="text-primary/70">Certificate ID: {certificateId}</p>
               </div>
             </div>
@@ -195,6 +166,15 @@ export function Certificate({
           <Button onClick={downloadCertificate} className="font-mono cyber-glow gap-2" size="lg">
             <Download className="h-5 w-5" />
             Download Certificate (PDF)
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            className="font-mono gap-2"
+            onClick={() => window.open(`/verify?id=${encodeURIComponent(certificateId)}`, '_blank')}
+          >
+            <ExternalLink className="h-5 w-5" />
+            Verify Certificate
           </Button>
         </div>
       </CardContent>
