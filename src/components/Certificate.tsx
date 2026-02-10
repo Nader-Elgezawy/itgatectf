@@ -1,7 +1,7 @@
 import { useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Download, Star, ExternalLink } from 'lucide-react';
+import { Award, Download, ShieldCheck, Zap } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -36,8 +36,8 @@ export function Certificate({
     if (!certificateRef.current) return;
     try {
       const canvas = await html2canvas(certificateRef.current, {
-        scale: 2,
-        backgroundColor: '#ffffff',
+        scale: 3, // Higher scale for print quality
+        backgroundColor: '#09090b', // Force dark background for PDF
         useCORS: true,
       });
 
@@ -45,139 +45,105 @@ export function Certificate({
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'px',
-        format: [canvas.width / 2, canvas.height / 2],
+        format: [canvas.width / 3, canvas.height / 3],
       });
 
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2);
-      pdf.save(`ITGate_CTF_Certificate_${participantName.replace(/\s+/g, '_')}.pdf`);
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 3, canvas.height / 3);
+      pdf.save(`Certificate_${participantName.replace(/\s+/g, '_')}.pdf`);
     } catch (error) {
       console.error('Failed to generate certificate:', error);
     }
   };
 
-  if (!participantName || solvedCount === 0 || !certificateId) {
-    return null;
-  }
-
-  const validPlayerNames = playerNames.filter(Boolean);
+  if (!participantName || solvedCount === 0 || !certificateId) return null;
 
   return (
-    <Card className="cyber-card overflow-hidden">
-      <CardHeader>
-        <CardTitle className="font-mono flex items-center gap-2">
-          <Award className="h-5 w-5 text-primary" />
-          Your Certificate
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Certificate Preview */}
-        <div ref={certificateRef} className="relative bg-gradient-to-br from-card via-background to-card border-2 border-primary/40 rounded-lg p-8 md:p-12 overflow-hidden">
-          {/* Decorative Elements */}
-          <div className="absolute top-0 left-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-0 w-40 h-40 bg-accent/10 rounded-full blur-3xl" />
-          <div className="absolute top-4 left-4 w-16 h-16 border-l-2 border-t-2 border-primary/30" />
-          <div className="absolute top-4 right-4 w-16 h-16 border-r-2 border-t-2 border-primary/30" />
-          <div className="absolute bottom-4 left-4 w-16 h-16 border-l-2 border-b-2 border-primary/30" />
-          <div className="absolute bottom-4 right-4 w-16 h-16 border-r-2 border-b-2 border-primary/30" />
+    <div className="flex flex-col items-center gap-8 py-10">
+      {/* Main Certificate Container */}
+      <div 
+        ref={certificateRef} 
+        className="relative w-[842px] h-[595px] bg-[#09090b] text-white overflow-hidden flex flex-col items-center justify-between p-12 border-[12px] border-[#1e1e1e]"
+      >
+        {/* Ornate Inner Border */}
+        <div className="absolute inset-4 border border-primary/30 pointer-events-none" />
+        
+        {/* Background Decorative Elements */}
+        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[60%] bg-primary/5 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[60%] bg-blue-500/5 blur-[120px] rounded-full" />
 
-          {/* Logo */}
-          <img src="/IT-Gate(1).png" alt="IT Gate Logo" className="absolute top-6 left-6 h-14 w-14 object-contain z-20" />
+        {/* Header Section */}
+        <div className="z-10 flex flex-col items-center gap-2">
+          <div className="bg-primary/10 p-3 rounded-full mb-2">
+            <ShieldCheck className="h-10 w-10 text-primary" />
+          </div>
+          <h2 className="text-xs tracking-[0.5em] uppercase font-light text-primary/80">
+            Official Certification of Excellence
+          </h2>
+          <h1 className="text-5xl font-bold tracking-tighter">IT GATE CTF 2026</h1>
+        </div>
 
-          {/* Certificate Content */}
-          <div className="relative z-10 text-center space-y-6">
-            <div className="space-y-2">
-              <div className="flex justify-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className={`h-5 w-5 ${rank > 0 && i < Math.min(5, 6 - Math.ceil(rank / 2)) ? 'text-primary fill-primary' : 'text-muted-foreground/30'}`} />
-                ))}
-              </div>
-              <h2 className="text-sm md:text-base font-mono uppercase tracking-[0.3em] text-muted-foreground">
-                Certificate of Achievement
-              </h2>
-            </div>
+        {/* Recipient Section */}
+        <div className="z-10 text-center space-y-4">
+          <p className="italic font-serif text-zinc-400 text-lg">This elite distinction is proudly presented to</p>
+          <div className="relative">
+            <h3 className="text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 px-10">
+              {participantName}
+            </h3>
+            <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-primary to-transparent mt-2" />
+          </div>
+          <p className="text-zinc-400 max-w-lg mx-auto text-sm leading-relaxed uppercase tracking-widest pt-2">
+            For outstanding technical proficiency and strategic problem-solving during the 
+            Capture The Flag cybersecurity challenge.
+          </p>
+        </div>
 
-            <div className="space-y-1">
-              <h1 className="text-2xl md:text-4xl font-bold font-mono text-gradient">IT Gate CTF</h1>
-              <p className="text-xs md:text-sm text-muted-foreground font-mono">Capture The Flag Competition</p>
-            </div>
-
-            <div className="flex items-center justify-center gap-4">
-              <div className="h-px w-16 bg-gradient-to-r from-transparent via-primary/50 to-primary" />
-              <Award className="h-6 w-6 text-primary" />
-              <div className="h-px w-16 bg-gradient-to-l from-transparent via-primary/50 to-primary" />
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-xs md:text-sm text-muted-foreground font-mono uppercase tracking-wider">This is to certify that</p>
-              <h3 className="text-2xl md:text-4xl font-bold font-mono text-foreground px-4 py-2 border-b-2 border-primary/50 inline-block">
-                {participantName}
-              </h3>
-              {validPlayerNames.length > 0 && (
-                <div className="space-y-1 pt-2">
-                  <p className="text-xs text-muted-foreground font-mono uppercase tracking-wider">Team Members</p>
-                  <div className="flex flex-wrap justify-center gap-x-6 gap-y-1">
-                    {validPlayerNames.map((name, i) => (
-                      <span key={i} className="text-base md:text-lg font-semibold font-mono text-foreground">{name}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-xs md:text-sm text-muted-foreground font-mono">has successfully participated and achieved the rank of</p>
-              <span className="text-4xl md:text-6xl font-bold font-mono text-primary">
-                {rank > 0 ? getOrdinalSuffix(rank) : 'Unranked'}
-              </span>
-            </div>
-
-            <div className="flex justify-center gap-8 pt-4">
-              <div className="text-center">
-                <p className="text-2xl md:text-3xl font-bold font-mono text-success">{totalPoints}</p>
-                <p className="text-xs text-muted-foreground font-mono uppercase">Points</p>
-              </div>
-              <div className="w-px bg-border" />
-              <div className="text-center">
-                <p className="text-2xl md:text-3xl font-bold font-mono text-accent-foreground">{solvedCount}</p>
-                <p className="text-xs text-muted-foreground font-mono uppercase">Challenges</p>
-              </div>
-              <div className="w-px bg-border" />
-              <div className="text-center">
-                <p className="text-2xl md:text-3xl font-bold font-mono text-warning">{rank > 0 ? `#${rank}` : '—'}</p>
-                <p className="text-xs text-muted-foreground font-mono uppercase">{rank > 0 ? `of ${totalParticipants}` : 'Position'}</p>
-              </div>
-            </div>
-
-            <div className="pt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground font-mono">
-              <div className="text-center md:text-left">
-                <p className="text-primary font-semibold">IT Gate CTF</p>
-                <p>Cybersecurity Competition</p>
-              </div>
-              <div className="text-center md:text-right">
-                <p>{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                <p className="text-primary/70">Certificate ID: {certificateId}</p>
-              </div>
-            </div>
+        {/* Stats Grid */}
+        <div className="z-10 grid grid-cols-3 gap-12 border-y border-white/10 py-6 w-full max-w-2xl">
+          <div className="text-center">
+            <p className="text-primary text-2xl font-mono font-bold">{getOrdinalSuffix(rank)}</p>
+            <p className="text-[10px] uppercase tracking-tighter text-zinc-500">Global Rank</p>
+          </div>
+          <div className="text-center border-x border-white/10">
+            <p className="text-primary text-2xl font-mono font-bold">{totalPoints}</p>
+            <p className="text-[10px] uppercase tracking-tighter text-zinc-500">Points Earned</p>
+          </div>
+          <div className="text-center">
+            <p className="text-primary text-2xl font-mono font-bold">{solvedCount}</p>
+            <p className="text-[10px] uppercase tracking-tighter text-zinc-500">Flags Captured</p>
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex justify-center gap-3 flex-wrap">
-          <Button onClick={downloadCertificate} className="font-mono cyber-glow gap-2" size="lg">
-            <Download className="h-5 w-5" />
-            Download Certificate (PDF)
-          </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            className="font-mono gap-2"
-            onClick={() => window.open(`/verify?id=${encodeURIComponent(certificateId)}`, '_blank')}
-          >
-            <ExternalLink className="h-5 w-5" />
-            Verify Certificate
-          </Button>
+        {/* Footer Section */}
+        <div className="z-10 w-full flex justify-between items-end px-4">
+          <div className="space-y-1">
+            <p className="text-[10px] font-mono text-zinc-500 uppercase">Certificate ID</p>
+            <p className="text-xs font-mono text-zinc-300">{certificateId.toUpperCase()}</p>
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+            <Zap className="h-8 w-8 text-primary/40" />
+            <div className="h-px w-32 bg-zinc-700" />
+            <p className="text-[10px] uppercase tracking-widest text-zinc-500">Authorized Signature</p>
+          </div>
+
+          <div className="text-right space-y-1">
+            <p className="text-[10px] font-mono text-zinc-500 uppercase">Issued Date</p>
+            <p className="text-xs font-mono text-zinc-300">
+              {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Action Button */}
+      <Button 
+        onClick={downloadCertificate} 
+        size="lg"
+        className="px-8 py-6 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_20px_rgba(var(--primary),0.3)] transition-all hover:scale-105"
+      >
+        <Download className="mr-2 h-5 w-5" />
+        Export High-Resolution PDF
+      </Button>
+    </div>
   );
 }
