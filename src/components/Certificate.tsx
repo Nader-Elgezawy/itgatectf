@@ -34,43 +34,105 @@ export function Certificate({
 
   const downloadCertificate = async () => {
     if (!certificateRef.current) return;
-
+    
     try {
-      // 1. إعدادات محسنة لـ html2canvas لمعالجة التدرجات والنصوص
+      // حفظ الأنماط الأصلية مؤقتاً
+      const originalStyles = {
+        position: certificateRef.current.style.position,
+        left: certificateRef.current.style.left,
+        top: certificateRef.current.style.top,
+        width: certificateRef.current.style.width,
+        height: certificateRef.current.style.height,
+      };
+
+      // ضبط أبعاد ثابتة للشهادة لتحسين الـ PDF
+      certificateRef.current.style.position = 'fixed';
+      certificateRef.current.style.left = '0';
+      certificateRef.current.style.top = '0';
+      certificateRef.current.style.width = '1200px';
+      certificateRef.current.style.height = '800px';
+
+      // إضافة فاصل زمني لتحميل كل العناصر
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       const canvas = await html2canvas(certificateRef.current, {
-        scale: 3, // جودة عالية جداً
-        useCORS: true, // للسماح بتحميل الصور
+        scale: 3, // زيادة الجودة
         backgroundColor: '#0f172a',
+        useCORS: true,
         logging: false,
         allowTaint: true,
+        imageTimeout: 15000, // زيادة وقت التحميل للصور
         onclone: (clonedDoc) => {
-          // نضمن أن العناصر التي تستخدم text-transparent تظهر بشكل صحيح
-          // html2canvas أحياناً يفشل في رندرة text-clip، هنا نجبره على الظهور
-          const gradientText = clonedDoc.querySelector('.force-visible-text');
-          if (gradientText) {
-            (gradientText as HTMLElement).style.color = 'white';
-            (gradientText as HTMLElement).style.background = 'none';
-            (gradientText as HTMLElement).style.webkitBackgroundClip = 'initial';
+          // تأكد من أن كل النصوص واضحة في النسخة المستنسخة
+          const clonedElement = clonedDoc.querySelector('[data-certificate]');
+          if (clonedElement) {
+            // إضافة أنماط إضافية لتحسين المظهر في PDF
+            clonedElement.style.color = '#ffffff';
+            clonedElement.style.fontFamily = 'monospace';
+            
+            // تأكد من أن كل النصوص مرئية
+            const textElements = clonedElement.querySelectorAll('*');
+            textElements.forEach(el => {
+              if (el instanceof HTMLElement) {
+                el.style.color = window.getComputedStyle(el).color || '#ffffff';
+                el.style.opacity = '1';
+                el.style.visibility = 'visible';
+              }
+            });
           }
         }
       });
 
+      // استعادة الأنماط الأصلية
+      certificateRef.current.style.position = originalStyles.position;
+      certificateRef.current.style.left = originalStyles.left;
+      certificateRef.current.style.top = originalStyles.top;
+      certificateRef.current.style.width = originalStyles.width;
+      certificateRef.current.style.height = originalStyles.height;
+
       const imgData = canvas.toDataURL('image/png', 1.0);
       
-      // 2. حساب الأبعاد لتناسب حجم الـ PDF
-      const imgWidth = canvas.width / 3;
-      const imgHeight = canvas.height / 3;
-
+      // استخدام أبعاد A4 أفقي
       const pdf = new jsPDF({
         orientation: 'landscape',
-        unit: 'px',
-        format: [imgWidth, imgHeight],
+        unit: 'mm',
+        format: 'a4',
       });
 
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      pdf.save(`ITGate_CTF_${participantName.replace(/\s+/g, '_')}.pdf`);
+      // حساب الأبعاد لتناسب الصفحة
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      // حساب نسبة التناسب
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = imgHeight / imgWidth;
+      
+      let width = pdfWidth - 20; // هامش 10 ملم من كل جانب
+      let height = width * ratio;
+      
+      // إذا كان الارتفاع أكبر من الصفحة، اضبط العرض
+      if (height > pdfHeight - 20) {
+        height = pdfHeight - 20;
+        width = height / ratio;
+      }
+      
+      // حساب الموضع المركزي
+      const x = (pdfWidth - width) / 2;
+      const y = (pdfHeight - height) / 2;
+      
+      pdf.addImage(imgData, 'PNG', x, y, width, height, undefined, 'FAST');
+      pdf.save(`ITGate_CTF_Certificate_${participantName.replace(/\s+/g, '_')}.pdf`);
     } catch (error) {
       console.error('Failed to generate certificate:', error);
+      // إعادة تعيين الأنماط في حالة الخطأ
+      if (certificateRef.current) {
+        certificateRef.current.style.position = '';
+        certificateRef.current.style.left = '';
+        certificateRef.current.style.top = '';
+        certificateRef.current.style.width = '';
+        certificateRef.current.style.height = '';
+      }
     }
   };
 
@@ -83,131 +145,210 @@ export function Certificate({
   return (
     <Card className="cyber-card overflow-hidden">
       <CardHeader>
-        <CardTitle className="font-mono flex items-center gap-2 text-white">
+        <CardTitle className="font-mono flex items-center gap-2">
           <Award className="h-5 w-5 text-primary" />
           Your Certificate
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        
-        {/* Certificate Area */}
+        {/* Certificate Preview - استخدام inline styles لتحسين الـ PDF */}
         <div 
           ref={certificateRef} 
-          className="relative bg-slate-950 border-2 border-primary/40 rounded-lg p-8 md:p-12 overflow-hidden"
-          style={{ minWidth: '800px' }} // نضمن عرض كافي للرندرة
+          data-certificate="true"
+          className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-2 border-primary/40 rounded-lg p-8 md:p-12 overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+            color: '#ffffff'
+          }}
         >
-          {/* Background Decorations */}
-          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black z-0" />
-          <div className="absolute top-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-0 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl" />
+          {/* Decorative Elements */}
+          <div className="absolute top-0 left-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-0 w-40 h-40 bg-accent/10 rounded-full blur-3xl" />
           
-          {/* Borders */}
-          <div className="absolute top-4 left-4 w-16 h-16 border-l-2 border-t-2 border-primary/30 z-10" />
-          <div className="absolute top-4 right-4 w-16 h-16 border-r-2 border-t-2 border-primary/30 z-10" />
-          <div className="absolute bottom-4 left-4 w-16 h-16 border-l-2 border-b-2 border-primary/30 z-10" />
-          <div className="absolute bottom-4 right-4 w-16 h-16 border-r-2 border-b-2 border-primary/30 z-10" />
+          {/* Corner borders */}
+          <div className="absolute top-4 left-4 w-16 h-16 border-l-2 border-t-2 border-primary/30" />
+          <div className="absolute top-4 right-4 w-16 h-16 border-r-2 border-t-2 border-primary/30" />
+          <div className="absolute bottom-4 left-4 w-16 h-16 border-l-2 border-b-2 border-primary/30" />
+          <div className="absolute bottom-4 right-4 w-16 h-16 border-r-2 border-b-2 border-primary/30" />
 
-          {/* Content Wrapper */}
-          <div className="relative z-20 text-center space-y-6">
-            
-            {/* Header */}
-            <div className="space-y-2">
-              <div className="flex justify-center gap-1">
+          {/* Logo with fallback */}
+          <div className="absolute top-6 left-6 z-20">
+            <div className="h-14 w-14 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center border-2 border-primary/30">
+              <span className="font-bold text-white text-xs">IT GATE</span>
+            </div>
+          </div>
+
+          {/* Certificate Content */}
+          <div className="relative z-10 text-center space-y-8" style={{ fontFamily: 'monospace, Arial, sans-serif' }}>
+            <div className="space-y-4">
+              <div className="flex justify-center gap-2">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className={`h-5 w-5 ${rank > 0 && i < Math.min(5, 6 - Math.ceil(rank / 2)) ? 'text-yellow-400 fill-yellow-400' : 'text-slate-700'}`} />
+                  <div 
+                    key={i} 
+                    className="w-5 h-5"
+                    style={{
+                      color: rank > 0 && i < Math.min(5, 6 - Math.ceil(rank / 2)) ? '#3b82f6' : '#6b7280',
+                      fill: rank > 0 && i < Math.min(5, 6 - Math.ceil(rank / 2)) ? '#3b82f6' : 'transparent'
+                    }}
+                  >
+                    <Star className="w-full h-full" />
+                  </div>
                 ))}
               </div>
-              <h2 className="text-sm font-mono uppercase tracking-[0.4em] text-slate-400">
+              <h2 
+                className="text-base uppercase tracking-[0.3em]"
+                style={{ color: '#cbd5e1', letterSpacing: '0.3em' }}
+              >
                 Certificate of Achievement
               </h2>
             </div>
 
-            {/* Title */}
-            <div className="space-y-1">
-              <h1 className="text-4xl font-bold font-mono text-white force-visible-text">
+            <div className="space-y-2">
+              <h1 
+                className="text-4xl font-bold"
+                style={{
+                  background: 'linear-gradient(to right, #ffffff, #cbd5e1, #94a3b8)',
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                  WebkitTextFillColor: 'transparent'
+                }}
+              >
                 IT Gate CTF
               </h1>
-              <p className="text-sm text-blue-400 font-mono tracking-widest uppercase">
+              <p className="text-sm" style={{ color: '#94a3b8' }}>
                 Capture The Flag Competition
               </p>
             </div>
 
-            {/* Divider */}
-            <div className="flex items-center justify-center gap-4">
-              <div className="h-px w-24 bg-gradient-to-r from-transparent to-primary" />
-              <Award className="h-8 w-8 text-primary" />
-              <div className="h-px w-24 bg-gradient-to-l from-transparent to-primary" />
+            <div className="flex items-center justify-center gap-8 py-4">
+              <div 
+                className="h-px w-24"
+                style={{ background: 'linear-gradient(to right, transparent, rgba(59, 130, 246, 0.5), #3b82f6)' }}
+              />
+              <Award className="h-8 w-8" style={{ color: '#3b82f6' }} />
+              <div 
+                className="h-px w-24"
+                style={{ background: 'linear-gradient(to left, transparent, rgba(59, 130, 246, 0.5), #3b82f6)' }}
+              />
             </div>
 
-            {/* Participant Name */}
-            <div className="space-y-3">
-              <p className="text-xs text-slate-400 font-mono uppercase tracking-widest">
-                This is to certify that
-              </p>
-              <h3 className="text-4xl md:text-5xl font-bold font-mono text-white">
-                {participantName}
-              </h3>
-              <div className="w-64 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent mx-auto" />
+            <div className="space-y-6">
+              <div>
+                <p className="text-sm uppercase tracking-wider mb-4" style={{ color: '#94a3b8' }}>
+                  This is to certify that
+                </p>
+                <h3 className="text-4xl font-bold mb-2" style={{ color: '#ffffff' }}>
+                  {participantName}
+                </h3>
+                <div 
+                  className="w-64 h-1 mx-auto"
+                  style={{ background: 'linear-gradient(to right, transparent, #3b82f6, transparent)' }}
+                />
+              </div>
               
               {validPlayerNames.length > 0 && (
-                <div className="pt-4">
-                  <p className="text-[10px] text-slate-500 font-mono uppercase mb-2">Team Members</p>
-                  <div className="flex flex-wrap justify-center gap-4">
+                <div className="space-y-3 pt-6">
+                  <p className="text-xs uppercase tracking-wider" style={{ color: '#94a3b8' }}>
+                    Team Members
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-3">
                     {validPlayerNames.map((name, i) => (
-                      <span key={i} className="text-lg font-mono text-slate-200">{name}</span>
+                      <div 
+                        key={i} 
+                        className="text-lg font-semibold px-4 py-2 rounded-lg"
+                        style={{ 
+                          color: '#ffffff',
+                          background: 'rgba(30, 41, 59, 0.8)',
+                          border: '1px solid rgba(100, 116, 139, 0.3)'
+                        }}
+                      >
+                        {name}
+                      </div>
                     ))}
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Rank & Stats */}
-            <div className="space-y-4">
-              <p className="text-sm text-slate-400 font-mono">
+            <div className="space-y-4 py-6">
+              <p className="text-sm" style={{ color: '#94a3b8' }}>
                 has successfully participated and achieved the rank of
               </p>
-              <div className="text-5xl font-bold font-mono text-primary py-2">
+              <span 
+                className="text-6xl font-bold block py-4"
+                style={{ color: '#3b82f6' }}
+              >
                 {rank > 0 ? getOrdinalSuffix(rank) : 'Unranked'}
+              </span>
+            </div>
+
+            <div className="flex justify-center gap-12 pt-8" style={{ borderTop: '1px solid rgba(100, 116, 139, 0.3)' }}>
+              <div className="text-center">
+                <p className="text-3xl font-bold" style={{ color: '#10b981' }}>
+                  {totalPoints}
+                </p>
+                <p className="text-xs uppercase" style={{ color: '#94a3b8', letterSpacing: '1px' }}>
+                  Points
+                </p>
+              </div>
+              
+              <div className="text-center">
+                <p className="text-3xl font-bold" style={{ color: '#f59e0b' }}>
+                  {solvedCount}
+                </p>
+                <p className="text-xs uppercase" style={{ color: '#94a3b8', letterSpacing: '1px' }}>
+                  Challenges
+                </p>
+              </div>
+              
+              <div className="text-center">
+                <p className="text-3xl font-bold" style={{ color: '#8b5cf6' }}>
+                  {rank > 0 ? `#${rank}` : '—'}
+                </p>
+                <p className="text-xs uppercase" style={{ color: '#94a3b8', letterSpacing: '1px' }}>
+                  {rank > 0 ? `of ${totalParticipants}` : 'Position'}
+                </p>
               </div>
             </div>
 
-            {/* Stats Grid */}
-            <div className="flex justify-center gap-12 pt-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold font-mono text-emerald-400">{totalPoints}</p>
-                <p className="text-[10px] text-slate-500 uppercase">Points</p>
+            <div 
+              className="flex flex-col md:flex-row justify-between items-center gap-4 pt-12 text-sm"
+              style={{ borderTop: '1px solid rgba(100, 116, 139, 0.3)' }}
+            >
+              <div className="text-center md:text-left">
+                <p style={{ color: '#3b82f6', fontWeight: '600' }}>IT Gate CTF</p>
+                <p style={{ color: '#94a3b8' }}>Cybersecurity Competition</p>
               </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold font-mono text-amber-400">{solvedCount}</p>
-                <p className="text-[10px] text-slate-500 uppercase">Challenges</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold font-mono text-purple-400">{rank > 0 ? `#${rank}` : '—'}</p>
-                <p className="text-[10px] text-slate-500 uppercase">Position</p>
-              </div>
-            </div>
-
-            {/* Footer Information */}
-            <div className="pt-10 flex justify-between items-end px-4 text-[10px] font-mono text-slate-500">
-              <div className="text-left">
-                <p className="text-primary font-bold">IT GATE COMMUNITY</p>
-                <p>Verify at: itgate-ctf.com</p>
-              </div>
-              <div className="text-right">
-                <p className="text-slate-300">{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                <p className="text-primary/60 italic">ID: {certificateId}</p>
+              
+              <div className="text-center md:text-right">
+                <p style={{ color: '#cbd5e1' }}>
+                  {new Date().toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </p>
+                <p style={{ color: 'rgba(59, 130, 246, 0.7)' }}>
+                  Certificate ID: {certificateId}
+                </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Action Button */}
-        <div className="flex justify-center pt-4">
+        {/* Actions */}
+        <div className="flex justify-center">
           <Button 
             onClick={downloadCertificate} 
-            className="font-mono bg-primary hover:bg-primary/90 text-white px-8 py-6 text-lg shadow-[0_0_20px_rgba(var(--primary),0.3)]"
+            className="font-mono gap-3 px-8 py-6 text-lg"
+            style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              color: 'white',
+              border: 'none'
+            }}
           >
-            <Download className="mr-2 h-5 w-5" />
+            <Download className="h-6 w-6" />
             Download Certificate (PDF)
           </Button>
         </div>
