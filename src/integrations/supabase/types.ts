@@ -220,6 +220,42 @@ export type Database = {
           },
         ]
       }
+      teams: {
+        Row: {
+          auth_user_id: string | null
+          created_at: string
+          id: string
+          player1_name: string
+          player2_name: string
+          player3_name: string
+          team_email: string
+          team_name: string
+          team_password_hash: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          created_at?: string
+          id?: string
+          player1_name: string
+          player2_name: string
+          player3_name: string
+          team_email: string
+          team_name: string
+          team_password_hash: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          created_at?: string
+          id?: string
+          player1_name?: string
+          player2_name?: string
+          player3_name?: string
+          team_email?: string
+          team_name?: string
+          team_password_hash?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string

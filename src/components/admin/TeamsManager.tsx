@@ -3,54 +3,51 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   Plus, 
   Trash2, 
   Users, 
   Loader2,
-  Shield,
+  Copy,
+  Check,
   User
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { z } from 'zod';
 
-interface TeamProfile {
+interface Team {
   id: string;
-  username: string;
-  player1_name: string | null;
-  player2_name: string | null;
-  player3_name: string | null;
+  team_name: string;
+  player1_name: string;
+  player2_name: string;
+  player3_name: string;
+  team_email: string;
+  auth_user_id: string | null;
   created_at: string;
-  role: 'admin' | 'user';
 }
 
-const createTeamSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  username: z.string().min(2, 'Team name must be at least 2 characters').max(50),
-  player1_name: z.string().min(2, 'Player 1 name is required').max(100),
-  player2_name: z.string().min(2, 'Player 2 name is required').max(100),
-  player3_name: z.string().min(2, 'Player 3 name is required').max(100),
-});
+interface CreatedCredentials {
+  team_name: string;
+  team_email: string;
+  team_password: string;
+}
 
 export function TeamsManager() {
-  const [teams, setTeams] = useState<TeamProfile[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [credentials, setCredentials] = useState<CreatedCredentials | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Form state
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
+  const [teamName, setTeamName] = useState('');
   const [player1Name, setPlayer1Name] = useState('');
   const [player2Name, setPlayer2Name] = useState('');
   const [player3Name, setPlayer3Name] = useState('');
-  const [role, setRole] = useState<'admin' | 'user'>('user');
 
   useEffect(() => {
     fetchTeams();
@@ -58,54 +55,34 @@ export function TeamsManager() {
 
   const fetchTeams = async () => {
     setIsLoading(true);
-    
-    const { data: profiles } = await supabase
-      .from('profiles')
+    const { data, error } = await supabase
+      .from('teams')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (profiles) {
-      const teamsWithRoles = await Promise.all(
-        profiles.map(async (profile) => {
-          const { data: roles } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', profile.id);
-
-          const isAdmin = roles?.some(r => r.role === 'admin');
-          return {
-            ...profile,
-            role: isAdmin ? 'admin' : 'user',
-          } as TeamProfile;
-        })
-      );
-      setTeams(teamsWithRoles);
-    }
-    
+    if (data) setTeams(data);
+    if (error) console.error('Error fetching teams:', error);
     setIsLoading(false);
   };
 
   const resetForm = () => {
-    setEmail('');
-    setPassword('');
-    setUsername('');
+    setTeamName('');
     setPlayer1Name('');
     setPlayer2Name('');
     setPlayer3Name('');
-    setRole('user');
+    setCredentials(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const validation = createTeamSchema.safeParse({ 
-      email, password, username, 
-      player1_name: player1Name, 
-      player2_name: player2Name, 
-      player3_name: player3Name 
-    });
-    if (!validation.success) {
-      toast.error(validation.error.errors[0].message);
+
+    if (!teamName.trim() || !player1Name.trim() || !player2Name.trim() || !player3Name.trim()) {
+      toast.error('All fields are required');
+      return;
+    }
+
+    if (teamName.trim().length < 2) {
+      toast.error('Team name must be at least 2 characters');
       return;
     }
 
@@ -114,19 +91,24 @@ export function TeamsManager() {
     try {
       const { data, error } = await supabase.functions.invoke('create-user', {
         body: { 
-          email, password, username, role,
-          player1_name: player1Name,
-          player2_name: player2Name,
-          player3_name: player3Name,
+          username: teamName.trim(),
+          player1_name: player1Name.trim(),
+          player2_name: player2Name.trim(),
+          player3_name: player3Name.trim(),
+          role: 'user',
         },
       });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
+      setCredentials({
+        team_name: teamName.trim(),
+        team_email: data.team_email,
+        team_password: data.team_password,
+      });
+
       toast.success('Team created successfully');
-      setIsDialogOpen(false);
-      resetForm();
       fetchTeams();
     } catch (error: any) {
       toast.error(error.message || 'Failed to create team');
@@ -135,21 +117,35 @@ export function TeamsManager() {
     }
   };
 
-  const handleDelete = async (teamId: string, teamName: string) => {
-    if (!confirm(`Are you sure you want to delete team "${teamName}"? This cannot be undone.`)) return;
+  const handleDelete = async (team: Team) => {
+    if (!confirm(`Are you sure you want to delete team "${team.team_name}"? This cannot be undone.`)) return;
 
     try {
-      const { error } = await supabase.functions.invoke('delete-user', {
-        body: { userId: teamId },
-      });
+      if (team.auth_user_id) {
+        const { error } = await supabase.functions.invoke('delete-user', {
+          body: { userId: team.auth_user_id },
+        });
+        if (error) throw error;
+      }
 
-      if (error) throw error;
+      // Also delete from teams table
+      await supabase.from('teams').delete().eq('id', team.id);
 
       toast.success('Team deleted');
       fetchTeams();
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete team');
     }
+  };
+
+  const copyCredentials = async (email: string, password?: string) => {
+    const text = password 
+      ? `Email: ${email}\nPassword: ${password}` 
+      : `Email: ${email}`;
+    await navigator.clipboard.writeText(text);
+    setCopiedId(email);
+    toast.success('Credentials copied to clipboard');
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   return (
@@ -170,109 +166,115 @@ export function TeamsManager() {
             <DialogHeader>
               <DialogTitle className="font-mono">Create Team</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label className="font-mono">Team Name</Label>
-                <Input
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Team Alpha"
-                  required
-                  className="cyber-input"
-                />
-              </div>
 
-              <div className="space-y-3 p-4 rounded-lg bg-muted/30 border border-border">
-                <Label className="font-mono text-sm text-muted-foreground uppercase tracking-wider">Team Members (3 Players)</Label>
+            {credentials ? (
+              <div className="space-y-4">
+                <div className="p-4 rounded-lg bg-primary/10 border border-primary/30">
+                  <h3 className="font-mono font-semibold text-primary mb-3">Team Created Successfully!</h3>
+                  <div className="space-y-2 font-mono text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Team:</span>{' '}
+                      <span className="font-semibold">{credentials.team_name}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Email:</span>{' '}
+                      <span className="font-semibold">{credentials.team_email}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Password:</span>{' '}
+                      <span className="font-semibold">{credentials.team_password}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-destructive mt-3 font-mono">
+                    ⚠ Save this password now! It won't be shown again.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    className="flex-1 font-mono"
+                    onClick={() => copyCredentials(credentials.team_email, credentials.team_password)}
+                  >
+                    {copiedId === credentials.team_email ? (
+                      <><Check className="h-4 w-4 mr-2" /> Copied!</>
+                    ) : (
+                      <><Copy className="h-4 w-4 mr-2" /> Copy Credentials</>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="font-mono"
+                    onClick={() => {
+                      resetForm();
+                    }}
+                  >
+                    Create Another
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="font-mono text-xs">Player 1</Label>
+                  <Label className="font-mono">Team Name</Label>
                   <Input
-                    value={player1Name}
-                    onChange={(e) => setPlayer1Name(e.target.value)}
-                    placeholder="Player 1 full name"
+                    value={teamName}
+                    onChange={(e) => setTeamName(e.target.value)}
+                    placeholder="Red Team"
                     required
                     className="cyber-input"
                   />
+                  <p className="text-xs text-muted-foreground font-mono">
+                    Email will be auto-generated: <span className="text-primary">{teamName ? `${teamName.toLowerCase().replace(/[^a-z0-9]/g, '')}@itgate.ctf` : 'teamname@itgate.ctf'}</span>
+                  </p>
                 </div>
-                <div className="space-y-2">
-                  <Label className="font-mono text-xs">Player 2</Label>
-                  <Input
-                    value={player2Name}
-                    onChange={(e) => setPlayer2Name(e.target.value)}
-                    placeholder="Player 2 full name"
-                    required
-                    className="cyber-input"
-                  />
+
+                <div className="space-y-3 p-4 rounded-lg bg-muted/30 border border-border">
+                  <Label className="font-mono text-sm text-muted-foreground uppercase tracking-wider">Team Members</Label>
+                  <div className="space-y-2">
+                    <Label className="font-mono text-xs">Player 1</Label>
+                    <Input
+                      value={player1Name}
+                      onChange={(e) => setPlayer1Name(e.target.value)}
+                      placeholder="Player 1 full name"
+                      required
+                      className="cyber-input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-mono text-xs">Player 2</Label>
+                    <Input
+                      value={player2Name}
+                      onChange={(e) => setPlayer2Name(e.target.value)}
+                      placeholder="Player 2 full name"
+                      required
+                      className="cyber-input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-mono text-xs">Player 3</Label>
+                    <Input
+                      value={player3Name}
+                      onChange={(e) => setPlayer3Name(e.target.value)}
+                      placeholder="Player 3 full name"
+                      required
+                      className="cyber-input"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="font-mono text-xs">Player 3</Label>
-                  <Input
-                    value={player3Name}
-                    onChange={(e) => setPlayer3Name(e.target.value)}
-                    placeholder="Player 3 full name"
-                    required
-                    className="cyber-input"
-                  />
+
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting} className="cyber-glow">
+                    {isSubmitting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      'Create Team'
+                    )}
+                  </Button>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="font-mono">Login Email</Label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="team@example.com"
-                  required
-                  className="cyber-input"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="font-mono">Login Password</Label>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="cyber-input"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Shared password for the team (at least 8 characters)
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="font-mono">Role</Label>
-                <Select value={role} onValueChange={(v) => setRole(v as 'admin' | 'user')}>
-                  <SelectTrigger className="cyber-input">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="user">Team</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting} className="cyber-glow">
-                  {isSubmitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    'Create Team'
-                  )}
-                </Button>
-              </div>
-            </form>
+              </form>
+            )}
           </DialogContent>
         </Dialog>
       </div>
@@ -289,60 +291,64 @@ export function TeamsManager() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {teams.map((team) => (
-            <Card key={team.id} className="cyber-card">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-lg ${
-                      team.role === 'admin' 
-                        ? 'bg-primary/10 text-primary' 
-                        : 'bg-muted text-muted-foreground'
-                    }`}>
-                      {team.role === 'admin' ? (
-                        <Shield className="h-5 w-5" />
-                      ) : (
-                        <Users className="h-5 w-5" />
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-mono font-semibold">{team.username}</h3>
-                        <Badge variant={team.role === 'admin' ? 'default' : 'secondary'}>
-                          {team.role === 'admin' ? 'admin' : 'team'}
+        <Card className="cyber-card overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="font-mono">Team Name</TableHead>
+                <TableHead className="font-mono">Players</TableHead>
+                <TableHead className="font-mono">Email</TableHead>
+                <TableHead className="font-mono">Created</TableHead>
+                <TableHead className="font-mono text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {teams.map((team) => (
+                <TableRow key={team.id}>
+                  <TableCell className="font-mono font-semibold">{team.team_name}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {[team.player1_name, team.player2_name, team.player3_name].map((name, i) => (
+                        <Badge key={i} variant="outline" className="text-xs font-mono">
+                          <User className="h-3 w-3 mr-1" />
+                          {name}
                         </Badge>
-                      </div>
-                      {team.role !== 'admin' && (team.player1_name || team.player2_name || team.player3_name) && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {[team.player1_name, team.player2_name, team.player3_name]
-                            .filter(Boolean)
-                            .map((name, i) => (
-                              <Badge key={i} variant="outline" className="text-xs font-mono">
-                                <User className="h-3 w-3 mr-1" />
-                                {name}
-                              </Badge>
-                            ))}
-                        </div>
-                      )}
-                      <p className="text-sm text-muted-foreground font-mono mt-1">
-                        Joined {new Date(team.created_at).toLocaleDateString()}
-                      </p>
+                      ))}
                     </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => handleDelete(team.id, team.username)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  </TableCell>
+                  <TableCell className="font-mono text-sm text-muted-foreground">{team.team_email}</TableCell>
+                  <TableCell className="font-mono text-sm text-muted-foreground">
+                    {new Date(team.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Copy email"
+                        onClick={() => copyCredentials(team.team_email)}
+                      >
+                        {copiedId === team.team_email ? (
+                          <Check className="h-4 w-4 text-primary" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => handleDelete(team)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </div>
   );
