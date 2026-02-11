@@ -12,30 +12,33 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
-        },
-      }
-    );
-
-    // Verify the caller is an admin
-    const {
-      data: { user: callerUser },
-    } = await supabaseClient.auth.getUser();
-
-    if (!callerUser) {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Check if caller is admin
-    const { data: isAdmin } = await supabaseClient.rpc("is_admin");
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user: callerUser }, error: userError } = await supabaseAdmin.auth.getUser(token);
+
+    if (userError || !callerUser) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
+      _user_id: callerUser.id,
+      _role: "admin",
+    });
     if (!isAdmin) {
       return new Response(
         JSON.stringify({ error: "Admin access required" }),
@@ -60,11 +63,7 @@ serve(async (req) => {
       );
     }
 
-    // Use service role for admin operations
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    // supabaseAdmin already created above
 
     // Delete the user (cascade will handle profiles, roles, submissions)
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
