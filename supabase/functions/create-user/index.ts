@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 function generatePassword(length = 14): string {
@@ -38,25 +38,32 @@ serve(async (req) => {
       );
     }
 
-    const supabaseAdmin = createClient(
+    // Validate caller using getClaims
+    const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
     );
 
-    // Validate caller identity
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user: callerUser }, error: userError } = await supabaseAdmin.auth.getUser(token);
-
-    if (userError || !callerUser) {
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    const callerId = claimsData.claims.sub as string;
+
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
     // Check if caller is admin
     const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
-      _user_id: callerUser.id,
+      _user_id: callerId,
       _role: "admin",
     });
     if (!isAdmin) {
@@ -87,8 +94,6 @@ serve(async (req) => {
     const email = `${sanitized}@itgate.ctf`;
     const password = generatePassword();
     const passwordHash = await hashPassword(password);
-
-    // supabaseAdmin already created above
 
     // Check for duplicate team name in both teams and profiles tables
     const { data: existingTeam } = await supabaseAdmin
@@ -161,7 +166,6 @@ serve(async (req) => {
       });
 
     if (teamError) {
-      // Rollback
       await supabaseAdmin.from("profiles").delete().eq("id", newUser.user.id);
       await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
       return new Response(
@@ -187,7 +191,7 @@ serve(async (req) => {
         success: true, 
         userId: newUser.user.id,
         team_email: email,
-        team_password: password, // Return plain password only once
+        team_password: password,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
