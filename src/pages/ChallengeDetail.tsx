@@ -20,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 import { useCompetitionTimer } from '@/hooks/useCompetitionTimer';
+import { SubQuestionsList } from '@/components/challenge/SubQuestionsList';
 
 interface Challenge {
   id: string;
@@ -64,11 +65,6 @@ export default function ChallengeDetail() {
 
     if (data) {
       setChallenge(data as unknown as Challenge);
-    }
-    setIsLoading(false);
-
-    if (data) {
-      setChallenge(data);
     }
     setIsLoading(false);
   };
@@ -252,7 +248,10 @@ export default function ChallengeDetail() {
               </div>
             )}
 
-            {/* Flag submission */}
+            {/* Sub-questions */}
+            <SubQuestionsList challengeId={challenge.id} isCompetitionOver={!!isCompetitionOver} />
+
+            {/* Main flag submission (for challenges without sub-questions or with a main flag) */}
             {isCompetitionOver ? (
               <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30 text-center">
                 <Clock className="h-8 w-8 mx-auto mb-2 text-destructive" />
