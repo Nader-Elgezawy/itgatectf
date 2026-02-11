@@ -250,66 +250,6 @@ export default function ChallengeDetail() {
 
             {/* Sub-questions */}
             <SubQuestionsList challengeId={challenge.id} isCompetitionOver={!!isCompetitionOver} />
-
-            {/* Main flag submission (for challenges without sub-questions or with a main flag) */}
-            {isCompetitionOver ? (
-              <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30 text-center">
-                <Clock className="h-8 w-8 mx-auto mb-2 text-destructive" />
-                <p className="font-mono text-destructive font-semibold">Competition Time Has Ended</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  No more submissions are accepted.
-                </p>
-              </div>
-            ) : isSolved ? (
-              <div className="p-4 rounded-lg bg-success/10 border border-success/30 text-center">
-                <CheckCircle className="h-8 w-8 mx-auto mb-2 text-success" />
-                <p className="font-mono text-success font-semibold">Challenge Solved!</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  You've already captured this flag.
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-mono text-muted-foreground mb-2">
-                    Submit Flag
-                  </label>
-                  <Textarea
-                    placeholder="flag{...}"
-                    value={flag}
-                    onChange={(e) => setFlag(e.target.value)}
-                    className="cyber-input font-mono resize-none"
-                    rows={2}
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground font-mono">
-                    {recentAttempts >= 10 
-                      ? 'Rate limited. Wait before retrying.'
-                      : `Attempts this minute: ${recentAttempts}/10`
-                    }
-                  </p>
-                  <Button 
-                    type="submit" 
-                    disabled={isSubmitting || !flag.trim() || recentAttempts >= 10}
-                    className="font-mono cyber-glow"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Checking...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4 mr-2" />
-                        Submit Flag
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            )}
           </CardContent>
         </Card>
       </div>
