@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      challenge_questions: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          flag: string
+          id: string
+          penalty_points: number
+          points: number
+          question_text: string
+          sort_order: number
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          flag: string
+          id?: string
+          penalty_points?: number
+          points?: number
+          question_text: string
+          sort_order?: number
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          flag?: string
+          id?: string
+          penalty_points?: number
+          points?: number
+          question_text?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_questions_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_questions_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenges: {
         Row: {
           category: string
@@ -118,6 +166,7 @@ export type Database = {
           challenge_id: string
           id: string
           is_correct: boolean
+          question_id: string | null
           submitted_at: string
           submitted_flag: string
           user_id: string
@@ -126,6 +175,7 @@ export type Database = {
           challenge_id: string
           id?: string
           is_correct?: boolean
+          question_id?: string | null
           submitted_at?: string
           submitted_flag: string
           user_id: string
@@ -134,6 +184,7 @@ export type Database = {
           challenge_id?: string
           id?: string
           is_correct?: boolean
+          question_id?: string | null
           submitted_at?: string
           submitted_flag?: string
           user_id?: string
@@ -151,6 +202,20 @@ export type Database = {
             columns: ["challenge_id"]
             isOneToOne: false
             referencedRelation: "challenges_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_questions_public"
             referencedColumns: ["id"]
           },
         ]
@@ -175,6 +240,51 @@ export type Database = {
       }
     }
     Views: {
+      challenge_questions_public: {
+        Row: {
+          challenge_id: string | null
+          created_at: string | null
+          id: string | null
+          penalty_points: number | null
+          points: number | null
+          question_text: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          challenge_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          penalty_points?: number | null
+          points?: number | null
+          question_text?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          challenge_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          penalty_points?: number | null
+          points?: number | null
+          question_text?: string | null
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_questions_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_questions_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenges_public: {
         Row: {
           category: string | null

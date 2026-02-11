@@ -14,7 +14,6 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      console.log("No valid auth header found");
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -24,19 +23,13 @@ serve(async (req) => {
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
+      { global: { headers: { Authorization: authHeader } } }
     );
 
-    // Validate the JWT token
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
 
     if (claimsError || !claimsData?.claims) {
-      console.log("Claims validation failed:", claimsError);
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -44,8 +37,7 @@ serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub as string;
-
-    const { challengeId, flag } = await req.json();
+    const { challengeId, questionId, flag } = await req.json();
 
     if (!challengeId || !flag) {
       return new Response(
@@ -54,7 +46,6 @@ serve(async (req) => {
       );
     }
 
-    // Use service role for database operations
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -69,9 +60,7 @@ serve(async (req) => {
 
     if (settings?.is_active && settings?.end_time) {
       const endTime = new Date(settings.end_time).getTime();
-      const now = Date.now();
-      if (now > endTime) {
-        console.log("Competition has ended, rejecting submission");
+      if (Date.now() > endTime) {
         return new Response(
           JSON.stringify({ error: "Competition has ended. No more submissions are accepted." }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -79,14 +68,89 @@ serve(async (req) => {
       }
     }
 
-    // Check if already solved
+    // If questionId is provided, validate against a sub-question
+    if (questionId) {
+      // Check if already solved this question
+      const { data: existingSolve } = await supabaseAdmin
+        .from("submissions")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("challenge_id", challengeId)
+        .eq("question_id", questionId)
+        .eq("is_correct", true)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingSolve) {
+        return new Response(
+          JSON.stringify({ correct: true, message: "Already solved" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Get the question flag
+      const { data: question, error: questionError } = await supabaseAdmin
+        .from("challenge_questions")
+        .select("flag, challenge_id")
+        .eq("id", questionId)
+        .single();
+
+      if (questionError || !question || question.challenge_id !== challengeId) {
+        return new Response(
+          JSON.stringify({ error: "Question not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Check challenge is active
+      const { data: challenge } = await supabaseAdmin
+        .from("challenges")
+        .select("is_active")
+        .eq("id", challengeId)
+        .single();
+
+      if (!challenge?.is_active) {
+        return new Response(
+          JSON.stringify({ error: "Challenge is not active" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Constant-time comparison
+      const submittedFlag = flag.trim();
+      const correctFlag = question.flag;
+      let isCorrect = submittedFlag.length === correctFlag.length;
+      const len = Math.max(submittedFlag.length, correctFlag.length);
+      for (let i = 0; i < len; i++) {
+        const a = i < submittedFlag.length ? submittedFlag.charCodeAt(i) : 0;
+        const b = i < correctFlag.length ? correctFlag.charCodeAt(i) : 0;
+        if (a !== b) isCorrect = false;
+      }
+
+      await supabaseAdmin.from("submissions").insert({
+        user_id: userId,
+        challenge_id: challengeId,
+        question_id: questionId,
+        submitted_flag: flag.trim(),
+        is_correct: isCorrect,
+      });
+
+      return new Response(
+        JSON.stringify({ correct: isCorrect }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Original flow: validate against challenge-level flag
     const { data: existingSolve } = await supabaseAdmin
       .from("submissions")
       .select("id")
       .eq("user_id", userId)
       .eq("challenge_id", challengeId)
       .eq("is_correct", true)
-      .single();
+      .is("question_id", null)
+      .limit(1)
+      .maybeSingle();
 
     if (existingSolve) {
       return new Response(
@@ -95,7 +159,6 @@ serve(async (req) => {
       );
     }
 
-    // Get the challenge flag
     const { data: challenge, error: challengeError } = await supabaseAdmin
       .from("challenges")
       .select("flag, is_active")
@@ -116,7 +179,6 @@ serve(async (req) => {
       );
     }
 
-    // Constant-time flag comparison to prevent timing attacks
     const submittedFlag = flag.trim();
     const correctFlag = challenge.flag;
     let isCorrect = submittedFlag.length === correctFlag.length;
@@ -127,7 +189,6 @@ serve(async (req) => {
       if (a !== b) isCorrect = false;
     }
 
-    // Log the submission
     await supabaseAdmin.from("submissions").insert({
       user_id: userId,
       challenge_id: challengeId,
