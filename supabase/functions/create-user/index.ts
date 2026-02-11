@@ -86,14 +86,20 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Check for duplicate team name in teams table
-    const { data: existing } = await supabaseAdmin
+    // Check for duplicate team name in both teams and profiles tables
+    const { data: existingTeam } = await supabaseAdmin
       .from("teams")
       .select("id")
       .eq("team_name", username)
       .maybeSingle();
 
-    if (existing) {
+    const { data: existingProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("username", username)
+      .maybeSingle();
+
+    if (existingTeam || existingProfile) {
       return new Response(
         JSON.stringify({ error: "A team with this name already exists" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
