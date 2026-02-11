@@ -128,7 +128,7 @@ export function ChallengesManager() {
         category,
         points: parseInt(points),
         penalty_points: parseInt(penaltyPoints) || 0,
-        flag,
+        flag: flag || 'n/a',
         is_active: isActive,
         file_url: fileUrl,
         file_name: fileName,
@@ -233,7 +233,7 @@ export function ChallengesManager() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="font-mono">Points</Label>
                   <Input
@@ -255,16 +255,6 @@ export function ChallengesManager() {
                     className="cyber-input"
                   />
                   <p className="text-xs text-muted-foreground">Points deducted per wrong attempt</p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-mono">Flag</Label>
-                  <Input
-                    value={flag}
-                    onChange={(e) => setFlag(e.target.value)}
-                    placeholder="flag{...}"
-                    required
-                    className="cyber-input font-mono"
-                  />
                 </div>
               </div>
 
