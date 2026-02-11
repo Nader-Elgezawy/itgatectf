@@ -6,6 +6,24 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function generatePassword(length = 14): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const array = new Uint8Array(length);
+  crypto.getRandomValues(array);
+  return Array.from(array, (b) => chars[b % chars.length]).join('');
+}
+
+function sanitizeTeamName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -22,7 +40,6 @@ serve(async (req) => {
       }
     );
 
-    // Verify the caller is an admin
     const {
       data: { user: callerUser },
     } = await supabaseClient.auth.getUser();
@@ -34,7 +51,6 @@ serve(async (req) => {
       );
     }
 
-    // Check if caller is admin
     const { data: isAdmin } = await supabaseClient.rpc("is_admin");
     if (!isAdmin) {
       return new Response(
@@ -43,22 +59,48 @@ serve(async (req) => {
       );
     }
 
-    const { email, password, username, role, player1_name, player2_name, player3_name } = await req.json();
+    const { username, player1_name, player2_name, player3_name, role } = await req.json();
 
-    if (!email || !password || !username) {
+    if (!username || !player1_name || !player2_name || !player3_name) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
+        JSON.stringify({ error: "All fields are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Use service role for admin operations
+    // Auto-generate email and password
+    const sanitized = sanitizeTeamName(username);
+    if (!sanitized) {
+      return new Response(
+        JSON.stringify({ error: "Team name must contain at least one alphanumeric character" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const email = `${sanitized}@itgate.ctf`;
+    const password = generatePassword();
+    const passwordHash = await hashPassword(password);
+
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Create the user
+    // Check for duplicate team name in teams table
+    const { data: existing } = await supabaseAdmin
+      .from("teams")
+      .select("id")
+      .eq("team_name", username)
+      .maybeSingle();
+
+    if (existing) {
+      return new Response(
+        JSON.stringify({ error: "A team with this name already exists" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create auth user
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -72,10 +114,10 @@ serve(async (req) => {
       );
     }
 
-    // Generate unique certificate ID server-side
+    // Generate certificate ID
     const certificateId = 'ITGCTF-' + crypto.randomUUID().slice(0, 8).toUpperCase();
 
-    // Create profile with player names and certificate ID
+    // Create profile
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .insert({
@@ -88,10 +130,32 @@ serve(async (req) => {
       });
 
     if (profileError) {
-      // Rollback: delete the user if profile creation fails
       await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
       return new Response(
         JSON.stringify({ error: "Failed to create profile: " + profileError.message }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create teams record
+    const { error: teamError } = await supabaseAdmin
+      .from("teams")
+      .insert({
+        team_name: username,
+        player1_name,
+        player2_name,
+        player3_name,
+        team_email: email,
+        team_password_hash: passwordHash,
+        auth_user_id: newUser.user.id,
+      });
+
+    if (teamError) {
+      // Rollback
+      await supabaseAdmin.from("profiles").delete().eq("id", newUser.user.id);
+      await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
+      return new Response(
+        JSON.stringify({ error: "Failed to create team: " + teamError.message }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -109,7 +173,12 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, userId: newUser.user.id }),
+      JSON.stringify({ 
+        success: true, 
+        userId: newUser.user.id,
+        team_email: email,
+        team_password: password, // Return plain password only once
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
