@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, Users, Flag, FileText, Clock, ShieldCheck } from 'lucide-react';
+import { Shield, Users, Flag, FileText, Clock, ShieldCheck, TrendingUp } from 'lucide-react';
 import { ChallengesManager } from '@/components/admin/ChallengesManager';
 import { TeamsManager } from '@/components/admin/TeamsManager';
 import { SubmissionsViewer } from '@/components/admin/SubmissionsViewer';
 import { TimerControl } from '@/components/admin/TimerControl';
 import { RolesManager } from '@/components/admin/RolesManager';
+import { PointsManager } from '@/components/admin/PointsManager';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('challenges');
@@ -48,6 +49,10 @@ export default function AdminDashboard() {
               <ShieldCheck className="h-4 w-4 mr-2" />
               Roles
             </TabsTrigger>
+            <TabsTrigger value="points" className="font-mono">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Points
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="challenges" className="mt-6">
@@ -68,6 +73,10 @@ export default function AdminDashboard() {
 
           <TabsContent value="roles" className="mt-6">
             <RolesManager />
+          </TabsContent>
+
+          <TabsContent value="points" className="mt-6">
+            <PointsManager />
           </TabsContent>
         </Tabs>
       </div>
