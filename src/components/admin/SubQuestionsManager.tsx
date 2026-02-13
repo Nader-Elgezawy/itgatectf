@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus, Trash2, GripVertical, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { GrantSolveDialog } from './GrantSolveDialog';
 
 interface SubQuestion {
   id?: string;
@@ -125,9 +126,18 @@ export function SubQuestionsManager({ challengeId }: SubQuestionsManagerProps) {
         <div key={index} className="p-3 rounded-lg border border-border bg-muted/30 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-mono font-semibold">Question {index + 1}</span>
-            <Button type="button" variant="ghost" size="icon" onClick={() => removeQuestion(index)} className="h-7 w-7 text-destructive">
-              <Trash2 className="h-3 w-3" />
-            </Button>
+            <div className="flex items-center gap-1">
+              {q.id && (
+                <GrantSolveDialog
+                  questionId={q.id}
+                  questionText={q.question_text || `Question ${index + 1}`}
+                  challengeId={challengeId}
+                />
+              )}
+              <Button type="button" variant="ghost" size="icon" onClick={() => removeQuestion(index)} className="h-7 w-7 text-destructive">
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
           <div className="space-y-2">
             <Textarea
