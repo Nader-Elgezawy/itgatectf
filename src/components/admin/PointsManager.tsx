@@ -23,7 +23,7 @@ interface ProfileAdjustment {
 export function PointsManager() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [profiles, setProfiles] = useState<ProfileAdjustment[]>([]);
-  const [adjustments, setAdjustments] = useState<Record<string, number>>({});
+  const [adjustments, setAdjustments] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
 
@@ -41,8 +41,8 @@ export function PointsManager() {
     if (lb) setLeaderboard(lb as LeaderboardEntry[]);
     if (profs) {
       setProfiles(profs as ProfileAdjustment[]);
-      const adj: Record<string, number> = {};
-      (profs as ProfileAdjustment[]).forEach(p => { adj[p.id] = p.point_adjustment; });
+      const adj: Record<string, string> = {};
+      (profs as ProfileAdjustment[]).forEach(p => { adj[p.id] = String(p.point_adjustment); });
       setAdjustments(adj);
     }
     setIsLoading(false);
@@ -50,7 +50,7 @@ export function PointsManager() {
 
   const handleSave = async (userId: string) => {
     setSavingId(userId);
-    const newAdj = adjustments[userId] ?? 0;
+    const newAdj = parseInt(adjustments[userId]) || 0;
     const { error } = await supabase
       .from('profiles')
       .update({ point_adjustment: newAdj } as any)
@@ -103,8 +103,8 @@ export function PointsManager() {
             <TableBody>
               {leaderboard.map((entry, index) => {
                 const profile = getProfile(entry.user_id);
-                const currentAdj = adjustments[entry.user_id] ?? 0;
-                const savedAdj = profile?.point_adjustment ?? 0;
+                const currentAdj = adjustments[entry.user_id] ?? '0';
+                const savedAdj = String(profile?.point_adjustment ?? 0);
                 const hasChanged = currentAdj !== savedAdj;
 
                 return (
@@ -119,7 +119,7 @@ export function PointsManager() {
                         value={currentAdj}
                         onChange={(e) => setAdjustments(prev => ({
                           ...prev,
-                          [entry.user_id]: parseInt(e.target.value) || 0,
+                          [entry.user_id]: e.target.value,
                         }))}
                         className="w-24 mx-auto text-center cyber-input font-mono"
                       />
