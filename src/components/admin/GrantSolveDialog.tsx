@@ -108,6 +108,7 @@ export function GrantSolveDialog({ questionId, questionText, challengeId }: Gran
             question_id: questionId,
             submitted_flag: flag,
             is_correct: true,
+            is_admin_granted: true,
           })));
 
         if (error) throw error;
