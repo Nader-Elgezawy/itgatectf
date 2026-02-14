@@ -24,6 +24,7 @@ export function SubQuestionsList({ challengeId, isCompetitionOver }: SubQuestion
   const { user } = useAuth();
   const [questions, setQuestions] = useState<SubQuestion[]>([]);
   const [solvedIds, setSolvedIds] = useState<Set<string>>(new Set());
+  const [wrongCounts, setWrongCounts] = useState<Record<string, number>>({});
   const [flags, setFlags] = useState<Record<string, string>>({});
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,18 +46,22 @@ export function SubQuestionsList({ challengeId, isCompetitionOver }: SubQuestion
       setQuestions(data as SubQuestion[]);
     }
 
-    // Check solved sub-questions
+    // Check solved sub-questions and wrong attempt counts
     if (user) {
       const { data: submissions } = await supabase
         .from('submissions')
-        .select('question_id')
+        .select('question_id, is_correct')
         .eq('user_id', user.id)
         .eq('challenge_id', challengeId)
-        .eq('is_correct', true)
         .not('question_id', 'is', null);
 
       if (submissions) {
-        setSolvedIds(new Set(submissions.map(s => s.question_id).filter(Boolean)));
+        setSolvedIds(new Set(submissions.filter(s => s.is_correct).map(s => s.question_id).filter(Boolean)));
+        const counts: Record<string, number> = {};
+        submissions.filter(s => !s.is_correct).forEach(s => {
+          if (s.question_id) counts[s.question_id] = (counts[s.question_id] || 0) + 1;
+        });
+        setWrongCounts(counts);
       }
     }
 
@@ -90,6 +95,7 @@ export function SubQuestionsList({ challengeId, isCompetitionOver }: SubQuestion
         });
         setFlags(prev => ({ ...prev, [questionId]: '' }));
       } else {
+        setWrongCounts(prev => ({ ...prev, [questionId]: (prev[questionId] || 0) + 1 }));
         toast.error('Incorrect flag. Try again!', {
           icon: <XCircle className="h-4 w-4" />,
         });
@@ -112,6 +118,8 @@ export function SubQuestionsList({ challengeId, isCompetitionOver }: SubQuestion
       <h3 className="font-mono font-semibold text-lg">Questions ({solvedIds.size}/{questions.length} solved)</h3>
       {questions.map((q, idx) => {
         const solved = solvedIds.has(q.id);
+        const wrongs = wrongCounts[q.id] || 0;
+        const effectivePoints = Math.max(0, q.points - wrongs * q.penalty_points);
         return (
           <div
             key={q.id}
@@ -121,9 +129,11 @@ export function SubQuestionsList({ challengeId, isCompetitionOver }: SubQuestion
               <div className="flex items-center gap-2">
                 {solved && <CheckCircle className="h-4 w-4 text-success" />}
                 <span className="font-mono font-semibold">Q{idx + 1}</span>
-                <span className="font-mono text-sm text-primary">{q.points} pts</span>
-                {q.penalty_points > 0 && (
-                  <span className="text-xs font-mono text-destructive">(-{q.penalty_points})</span>
+                <span className={`font-mono text-sm ${effectivePoints < q.points ? 'text-destructive' : 'text-primary'}`}>
+                  {effectivePoints} pts
+                </span>
+                {wrongs > 0 && effectivePoints < q.points && (
+                  <span className="text-xs font-mono text-muted-foreground line-through">{q.points}</span>
                 )}
               </div>
             </div>
