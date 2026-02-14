@@ -168,6 +168,7 @@ export type Database = {
         Row: {
           challenge_id: string
           id: string
+          is_admin_granted: boolean
           is_correct: boolean
           question_id: string | null
           submitted_at: string
@@ -177,6 +178,7 @@ export type Database = {
         Insert: {
           challenge_id: string
           id?: string
+          is_admin_granted?: boolean
           is_correct?: boolean
           question_id?: string | null
           submitted_at?: string
@@ -186,6 +188,7 @@ export type Database = {
         Update: {
           challenge_id?: string
           id?: string
+          is_admin_granted?: boolean
           is_correct?: boolean
           question_id?: string | null
           submitted_at?: string
