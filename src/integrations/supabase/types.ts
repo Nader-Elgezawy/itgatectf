@@ -19,6 +19,7 @@ export type Database = {
           challenge_id: string
           created_at: string
           flag: string
+          flag_placeholder: string | null
           id: string
           penalty_points: number
           points: number
@@ -29,6 +30,7 @@ export type Database = {
           challenge_id: string
           created_at?: string
           flag: string
+          flag_placeholder?: string | null
           id?: string
           penalty_points?: number
           points?: number
@@ -39,6 +41,7 @@ export type Database = {
           challenge_id?: string
           created_at?: string
           flag?: string
+          flag_placeholder?: string | null
           id?: string
           penalty_points?: number
           points?: number
@@ -70,6 +73,7 @@ export type Database = {
           file_name: string | null
           file_url: string | null
           flag: string
+          flag_placeholder: string | null
           id: string
           is_active: boolean | null
           penalty_points: number
@@ -84,6 +88,7 @@ export type Database = {
           file_name?: string | null
           file_url?: string | null
           flag: string
+          flag_placeholder?: string | null
           id?: string
           is_active?: boolean | null
           penalty_points?: number
@@ -98,6 +103,7 @@ export type Database = {
           file_name?: string | null
           file_url?: string | null
           flag?: string
+          flag_placeholder?: string | null
           id?: string
           is_active?: boolean | null
           penalty_points?: number
@@ -286,6 +292,7 @@ export type Database = {
         Row: {
           challenge_id: string | null
           created_at: string | null
+          flag_placeholder: string | null
           id: string | null
           penalty_points: number | null
           points: number | null
@@ -295,6 +302,7 @@ export type Database = {
         Insert: {
           challenge_id?: string | null
           created_at?: string | null
+          flag_placeholder?: string | null
           id?: string | null
           penalty_points?: number | null
           points?: number | null
@@ -304,6 +312,7 @@ export type Database = {
         Update: {
           challenge_id?: string | null
           created_at?: string | null
+          flag_placeholder?: string | null
           id?: string | null
           penalty_points?: number | null
           points?: number | null
