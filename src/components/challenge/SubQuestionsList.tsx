@@ -13,6 +13,7 @@ interface SubQuestion {
   points: number;
   penalty_points: number;
   sort_order: number;
+  flag_placeholder: string | null;
 }
 
 interface SubQuestionsListProps {
@@ -38,7 +39,7 @@ export function SubQuestionsList({ challengeId, isCompetitionOver }: SubQuestion
 
     const { data } = await supabase
       .from('challenge_questions_public')
-      .select('id, question_text, points, penalty_points, sort_order, challenge_id')
+      .select('id, question_text, points, penalty_points, sort_order, challenge_id, flag_placeholder')
       .eq('challenge_id', challengeId)
       .order('sort_order');
 
@@ -148,7 +149,7 @@ export function SubQuestionsList({ challengeId, isCompetitionOver }: SubQuestion
             ) : (
               <div className="flex gap-2">
                 <Textarea
-                  placeholder="flag{...}"
+                  placeholder={q.flag_placeholder || 'flag{...}'}
                   value={flags[q.id] || ''}
                   onChange={(e) => setFlags(prev => ({ ...prev, [q.id]: e.target.value }))}
                   className="cyber-input font-mono resize-none text-sm"
