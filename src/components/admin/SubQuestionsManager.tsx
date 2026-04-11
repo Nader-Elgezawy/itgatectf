@@ -12,6 +12,7 @@ interface SubQuestion {
   id?: string;
   question_text: string;
   flag: string;
+  flag_placeholder: string;
   points: number;
   penalty_points: number;
   sort_order: number;
@@ -43,6 +44,7 @@ export function SubQuestionsManager({ challengeId }: SubQuestionsManagerProps) {
         id: q.id,
         question_text: q.question_text,
         flag: q.flag,
+        flag_placeholder: q.flag_placeholder || 'flag{...}',
         points: q.points,
         penalty_points: q.penalty_points,
         sort_order: q.sort_order,
@@ -55,6 +57,7 @@ export function SubQuestionsManager({ challengeId }: SubQuestionsManagerProps) {
     setQuestions(prev => [...prev, {
       question_text: '',
       flag: '',
+      flag_placeholder: 'flag{...}',
       points: 50,
       penalty_points: 0,
       sort_order: prev.length,
@@ -86,6 +89,7 @@ export function SubQuestionsManager({ challengeId }: SubQuestionsManagerProps) {
             challenge_id: challengeId,
             question_text: q.question_text,
             flag: q.flag,
+            flag_placeholder: q.flag_placeholder || 'flag{...}',
             points: q.points,
             penalty_points: q.penalty_points,
             sort_order: i,
@@ -148,7 +152,7 @@ export function SubQuestionsManager({ challengeId }: SubQuestionsManagerProps) {
               className="cyber-input text-sm"
             />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="font-mono text-xs">Flag</Label>
               <Input
@@ -158,6 +162,17 @@ export function SubQuestionsManager({ challengeId }: SubQuestionsManagerProps) {
                 className="cyber-input font-mono text-sm"
               />
             </div>
+            <div className="space-y-1">
+              <Label className="font-mono text-xs">Placeholder (shown to users)</Label>
+              <Input
+                value={q.flag_placeholder}
+                onChange={(e) => updateQuestion(index, 'flag_placeholder', e.target.value)}
+                placeholder="flag{...}"
+                className="cyber-input font-mono text-sm"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="font-mono text-xs">Points</Label>
               <Input
