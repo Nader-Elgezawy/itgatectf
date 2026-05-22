@@ -62,8 +62,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error as Error | null };
+    let directError: Error | null = null;
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      directError = error as Error | null;
+    } catch (error) {
+      directError = error as Error;
+    }
+
+    if (!directError) {
+      return { error: null };
+    }
+
+    const message = directError.message || '';
+    const isNetworkFailure =
+      message.includes('NetworkError') ||
+      message.includes('Failed to fetch') ||
+      message.includes('fetch');
+
+    if (!isNetworkFailure) {
+      return { error: directError };
+    }
+
+    const { data, error: fallbackError } = await supabase.functions.invoke('password-login', {
+      body: { email, password },
+    });
+
+    if (fallbackError || data?.error) {
+      return { error: new Error(data?.error || fallbackError?.message || 'Login failed') };
+    }
+
+    const { error: sessionError } = await supabase.auth.setSession({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+    });
+
+    return { error: sessionError as Error | null };
   };
 
   const signOut = async () => {
