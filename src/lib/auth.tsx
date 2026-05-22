@@ -62,20 +62,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    let directError: Error | null = null;
 
-    if (!error) {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      directError = error as Error | null;
+    } catch (error) {
+      directError = error as Error;
+    }
+
+    if (!directError) {
       return { error: null };
     }
 
-    const message = error.message || '';
+    const message = directError.message || '';
     const isNetworkFailure =
       message.includes('NetworkError') ||
       message.includes('Failed to fetch') ||
       message.includes('fetch');
 
     if (!isNetworkFailure) {
-      return { error: error as Error | null };
+      return { error: directError };
     }
 
     const { data, error: fallbackError } = await supabase.functions.invoke('password-login', {
