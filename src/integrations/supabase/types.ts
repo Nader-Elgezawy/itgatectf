@@ -145,6 +145,7 @@ export type Database = {
           player1_name: string | null
           player2_name: string | null
           player3_name: string | null
+          players: string[]
           point_adjustment: number
           username: string
         }
@@ -155,6 +156,7 @@ export type Database = {
           player1_name?: string | null
           player2_name?: string | null
           player3_name?: string | null
+          players?: string[]
           point_adjustment?: number
           username: string
         }
@@ -165,6 +167,7 @@ export type Database = {
           player1_name?: string | null
           player2_name?: string | null
           player3_name?: string | null
+          players?: string[]
           point_adjustment?: number
           username?: string
         }
@@ -237,9 +240,10 @@ export type Database = {
           auth_user_id: string | null
           created_at: string
           id: string
-          player1_name: string
-          player2_name: string
-          player3_name: string
+          player1_name: string | null
+          player2_name: string | null
+          player3_name: string | null
+          players: string[]
           team_email: string
           team_name: string
           team_password_hash: string
@@ -248,9 +252,10 @@ export type Database = {
           auth_user_id?: string | null
           created_at?: string
           id?: string
-          player1_name: string
-          player2_name: string
-          player3_name: string
+          player1_name?: string | null
+          player2_name?: string | null
+          player3_name?: string | null
+          players?: string[]
           team_email: string
           team_name: string
           team_password_hash: string
@@ -259,9 +264,10 @@ export type Database = {
           auth_user_id?: string | null
           created_at?: string
           id?: string
-          player1_name?: string
-          player2_name?: string
-          player3_name?: string
+          player1_name?: string | null
+          player2_name?: string | null
+          player3_name?: string | null
+          players?: string[]
           team_email?: string
           team_name?: string
           team_password_hash?: string
