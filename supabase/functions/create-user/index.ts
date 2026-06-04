@@ -73,14 +73,22 @@ serve(async (req) => {
       );
     }
 
-    const { username, player1_name, player2_name, player3_name, role } = await req.json();
+    const body = await req.json();
+    const { username, role } = body;
+    let players: string[] = Array.isArray(body.players)
+      ? body.players.map((p: any) => String(p ?? "").trim()).filter((p: string) => p.length > 0)
+      : [body.player1_name, body.player2_name, body.player3_name]
+          .map((p: any) => String(p ?? "").trim())
+          .filter((p: string) => p.length > 0);
 
-    if (!username || !player1_name || !player2_name || !player3_name) {
+    if (!username || players.length < 1) {
       return new Response(
-        JSON.stringify({ error: "All fields are required" }),
+        JSON.stringify({ error: "Team name and at least one player are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const safeRole = role === "admin" ? "admin" : "user";
 
     // Auto-generate email and password
     const sanitized = sanitizeTeamName(username);
@@ -138,9 +146,10 @@ serve(async (req) => {
       .insert({
         id: newUser.user.id,
         username,
-        player1_name: player1_name || null,
-        player2_name: player2_name || null,
-        player3_name: player3_name || null,
+        player1_name: players[0] ?? null,
+        player2_name: players[1] ?? null,
+        player3_name: players[2] ?? null,
+        players,
         certificate_id: certificateId,
       });
 
@@ -157,9 +166,10 @@ serve(async (req) => {
       .from("teams")
       .insert({
         team_name: username,
-        player1_name,
-        player2_name,
-        player3_name,
+        player1_name: players[0] ?? null,
+        player2_name: players[1] ?? null,
+        player3_name: players[2] ?? null,
+        players,
         team_email: email,
         team_password_hash: passwordHash,
         auth_user_id: newUser.user.id,
@@ -179,7 +189,7 @@ serve(async (req) => {
       .from("user_roles")
       .insert({
         user_id: newUser.user.id,
-        role: role || "user",
+        role: safeRole,
       });
 
     if (roleError) {

@@ -6,14 +6,16 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { 
-  Plus, 
-  Trash2, 
-  Users, 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Plus,
+  Trash2,
+  Users,
   Loader2,
   Copy,
   Check,
-  User
+  User,
+  X,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -21,9 +23,10 @@ import { toast } from 'sonner';
 interface Team {
   id: string;
   team_name: string;
-  player1_name: string;
-  player2_name: string;
-  player3_name: string;
+  player1_name: string | null;
+  player2_name: string | null;
+  player3_name: string | null;
+  players: string[] | null;
   team_email: string;
   auth_user_id: string | null;
   created_at: string;
@@ -35,6 +38,8 @@ interface CreatedCredentials {
   team_password: string;
 }
 
+type Role = 'user' | 'admin';
+
 export function TeamsManager() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,9 +50,8 @@ export function TeamsManager() {
 
   // Form state
   const [teamName, setTeamName] = useState('');
-  const [player1Name, setPlayer1Name] = useState('');
-  const [player2Name, setPlayer2Name] = useState('');
-  const [player3Name, setPlayer3Name] = useState('');
+  const [role, setRole] = useState<Role>('user');
+  const [players, setPlayers] = useState<string[]>(['', '', '']);
 
   useEffect(() => {
     fetchTeams();
@@ -60,29 +64,39 @@ export function TeamsManager() {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (data) setTeams(data);
+    if (data) setTeams(data as Team[]);
     if (error) console.error('Error fetching teams:', error);
     setIsLoading(false);
   };
 
   const resetForm = () => {
     setTeamName('');
-    setPlayer1Name('');
-    setPlayer2Name('');
-    setPlayer3Name('');
+    setRole('user');
+    setPlayers(['', '', '']);
     setCredentials(null);
   };
+
+  const updatePlayer = (i: number, v: string) =>
+    setPlayers((p) => p.map((x, idx) => (idx === i ? v : x)));
+  const addPlayer = () => setPlayers((p) => [...p, '']);
+  const removePlayer = (i: number) =>
+    setPlayers((p) => (p.length <= 1 ? p : p.filter((_, idx) => idx !== i)));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!teamName.trim() || !player1Name.trim() || !player2Name.trim() || !player3Name.trim()) {
-      toast.error('All fields are required');
+    const cleanedPlayers = players.map((p) => p.trim()).filter((p) => p.length > 0);
+
+    if (!teamName.trim()) {
+      toast.error('Team name is required');
       return;
     }
-
     if (teamName.trim().length < 2) {
       toast.error('Team name must be at least 2 characters');
+      return;
+    }
+    if (cleanedPlayers.length < 1) {
+      toast.error('At least one player is required');
       return;
     }
 
@@ -90,12 +104,10 @@ export function TeamsManager() {
 
     try {
       const { data, error } = await supabase.functions.invoke('create-user', {
-        body: { 
+        body: {
           username: teamName.trim(),
-          player1_name: player1Name.trim(),
-          player2_name: player2Name.trim(),
-          player3_name: player3Name.trim(),
-          role: 'user',
+          players: cleanedPlayers,
+          role,
         },
       });
 
@@ -128,7 +140,6 @@ export function TeamsManager() {
         if (error) throw error;
       }
 
-      // Also delete from teams table
       await supabase.from('teams').delete().eq('id', team.id);
 
       toast.success('Team deleted');
@@ -139,8 +150,8 @@ export function TeamsManager() {
   };
 
   const copyCredentials = async (email: string, password?: string) => {
-    const text = password 
-      ? `Email: ${email}\nPassword: ${password}` 
+    const text = password
+      ? `Email: ${email}\nPassword: ${password}`
       : `Email: ${email}`;
     await navigator.clipboard.writeText(text);
     setCopiedId(email);
@@ -148,14 +159,24 @@ export function TeamsManager() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const getPlayers = (t: Team): string[] => {
+    if (t.players && t.players.length > 0) return t.players;
+    return [t.player1_name, t.player2_name, t.player3_name].filter(
+      (n): n is string => !!n && n.trim().length > 0
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold font-mono">Teams</h2>
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (!open) resetForm();
-        }}>
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) resetForm();
+          }}
+        >
           <DialogTrigger asChild>
             <Button className="font-mono cyber-glow">
               <Plus className="h-4 w-4 mr-2" />
@@ -200,13 +221,7 @@ export function TeamsManager() {
                       <><Copy className="h-4 w-4 mr-2" /> Copy Credentials</>
                     )}
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="font-mono"
-                    onClick={() => {
-                      resetForm();
-                    }}
-                  >
+                  <Button variant="outline" className="font-mono" onClick={() => resetForm()}>
                     Create Another
                   </Button>
                 </div>
@@ -223,41 +238,70 @@ export function TeamsManager() {
                     className="cyber-input"
                   />
                   <p className="text-xs text-muted-foreground font-mono">
-                    Email will be auto-generated: <span className="text-primary">{teamName ? `${teamName.toLowerCase().replace(/[^a-z0-9]/g, '')}@itgate.ctf` : 'teamname@itgate.ctf'}</span>
+                    Email will be auto-generated:{' '}
+                    <span className="text-primary">
+                      {teamName
+                        ? `${teamName.toLowerCase().replace(/[^a-z0-9]/g, '')}@itgate.ctf`
+                        : 'teamname@itgate.ctf'}
+                    </span>
                   </p>
                 </div>
 
+                <div className="space-y-2">
+                  <Label className="font-mono">Role</Label>
+                  <Select value={role} onValueChange={(v) => setRole(v as Role)}>
+                    <SelectTrigger className="cyber-input font-mono">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user" className="font-mono">User</SelectItem>
+                      <SelectItem value="admin" className="font-mono">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="space-y-3 p-4 rounded-lg bg-muted/30 border border-border">
-                  <Label className="font-mono text-sm text-muted-foreground uppercase tracking-wider">Team Members</Label>
-                  <div className="space-y-2">
-                    <Label className="font-mono text-xs">Player 1</Label>
-                    <Input
-                      value={player1Name}
-                      onChange={(e) => setPlayer1Name(e.target.value)}
-                      placeholder="Player 1 full name"
-                      required
-                      className="cyber-input"
-                    />
+                  <div className="flex items-center justify-between">
+                    <Label className="font-mono text-sm text-muted-foreground uppercase tracking-wider">
+                      Team Members
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="font-mono"
+                      onClick={addPlayer}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add Player
+                    </Button>
                   </div>
                   <div className="space-y-2">
-                    <Label className="font-mono text-xs">Player 2</Label>
-                    <Input
-                      value={player2Name}
-                      onChange={(e) => setPlayer2Name(e.target.value)}
-                      placeholder="Player 2 full name"
-                      required
-                      className="cyber-input"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-mono text-xs">Player 3</Label>
-                    <Input
-                      value={player3Name}
-                      onChange={(e) => setPlayer3Name(e.target.value)}
-                      placeholder="Player 3 full name"
-                      required
-                      className="cyber-input"
-                    />
+                    {players.map((value, i) => (
+                      <div key={i} className="space-y-1">
+                        <Label className="font-mono text-xs">Player {i + 1}</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={value}
+                            onChange={(e) => updatePlayer(i, e.target.value)}
+                            placeholder={`Player ${i + 1} full name`}
+                            className="cyber-input"
+                          />
+                          {players.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => removePlayer(i)}
+                              title="Remove player"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -266,11 +310,7 @@ export function TeamsManager() {
                     Cancel
                   </Button>
                   <Button type="submit" disabled={isSubmitting} className="cyber-glow">
-                    {isSubmitting ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      'Create Team'
-                    )}
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Team'}
                   </Button>
                 </div>
               </form>
@@ -280,9 +320,7 @@ export function TeamsManager() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8 text-muted-foreground font-mono">
-          Loading teams...
-        </div>
+        <div className="text-center py-8 text-muted-foreground font-mono">Loading teams...</div>
       ) : teams.length === 0 ? (
         <Card className="cyber-card">
           <CardContent className="py-8 text-center">
@@ -308,7 +346,7 @@ export function TeamsManager() {
                   <TableCell className="font-mono font-semibold">{team.team_name}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {[team.player1_name, team.player2_name, team.player3_name].map((name, i) => (
+                      {getPlayers(team).map((name, i) => (
                         <Badge key={i} variant="outline" className="text-xs font-mono">
                           <User className="h-3 w-3 mr-1" />
                           {name}
