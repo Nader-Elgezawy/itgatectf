@@ -73,14 +73,22 @@ serve(async (req) => {
       );
     }
 
-    const { username, player1_name, player2_name, player3_name, role } = await req.json();
+    const body = await req.json();
+    const { username, role } = body;
+    let players: string[] = Array.isArray(body.players)
+      ? body.players.map((p: any) => String(p ?? "").trim()).filter((p: string) => p.length > 0)
+      : [body.player1_name, body.player2_name, body.player3_name]
+          .map((p: any) => String(p ?? "").trim())
+          .filter((p: string) => p.length > 0);
 
-    if (!username || !player1_name || !player2_name || !player3_name) {
+    if (!username || players.length < 1) {
       return new Response(
-        JSON.stringify({ error: "All fields are required" }),
+        JSON.stringify({ error: "Team name and at least one player are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const safeRole = role === "admin" ? "admin" : "user";
 
     // Auto-generate email and password
     const sanitized = sanitizeTeamName(username);
